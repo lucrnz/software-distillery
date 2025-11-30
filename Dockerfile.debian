@@ -1,0 +1,67 @@
+ARG DEBIAN_VERSION=bookworm
+
+FROM debian:${DEBIAN_VERSION} AS builder
+ENV TARGET_DIR=/opt/python2.7
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Safer shell execution with debugging
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+# Install build deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libc6-dev linux-libc-dev make \
+    zlib1g-dev libbz2-dev libncurses-dev \
+    libsqlite3-dev libreadline-dev tk-dev libgdbm-dev \
+    liblzma-dev libffi-dev \
+    perl curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build OpenSSL 1.1.1w
+RUN cd /tmp && \
+  OPENSSL_TAR="openssl-1.1.1w.tar.gz" && \
+  OPENSSL_DIR="openssl-1.1.1w" && \
+  curl -LO https://www.openssl.org/source/$OPENSSL_TAR && \
+  echo "cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8 $OPENSSL_TAR" | sha256sum -c - && \
+  tar xzf $OPENSSL_TAR && rm $OPENSSL_TAR && \
+  cd $OPENSSL_DIR && \
+  mkdir -p $TARGET_DIR/openssl && \
+  ./config --prefix=$TARGET_DIR/openssl --openssldir=$TARGET_DIR/openssl shared zlib && \
+  make -j$(nproc) build_libs && \
+  make install_sw && \
+  cd / && \
+  rm -rf /tmp/$OPENSSL_DIR* && \
+  echo "export LD_LIBRARY_PATH=$TARGET_DIR/openssl/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}" >> $TARGET_DIR/env.sh
+
+# Install Python 2.7.18 from source
+RUN source $TARGET_DIR/env.sh && cd /tmp && \
+  PYTHON_TAR="Python-2.7.18.tgz" && \
+  PYTHON_DIR="Python-2.7.18" && \
+  curl -LO https://www.python.org/ftp/python/2.7.18/$PYTHON_TAR && \
+  echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814 $PYTHON_TAR" | sha256sum -c - && \
+  tar xzf $PYTHON_TAR && rm $PYTHON_TAR && \
+  cd $PYTHON_DIR && \
+  LDFLAGS="-L$TARGET_DIR/openssl/lib" CPPFLAGS="-I$TARGET_DIR/openssl/include" \
+  ./configure --prefix=$TARGET_DIR --with-openssl=$TARGET_DIR/openssl && \
+  make -j$(nproc) && \
+  make altinstall && \
+  cd / && \
+  rm -rf /tmp/$PYTHON_DIR* && \
+  echo "export PATH=$TARGET_DIR/bin:\$PATH" >> $TARGET_DIR/env.sh
+
+# Test OpenSSL is working
+RUN source $TARGET_DIR/env.sh && python2.7 -c "import ssl; print(ssl.OPENSSL_VERSION)" && python2.7 --version
+
+FROM debian:${DEBIAN_VERSION} AS target
+ENV TARGET_DIR=/opt/python2.7
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libffi8 zlib1g libbz2-1.0 libncurses6 libreadline8 tk libgdbm6 libsqlite3-0 liblzma5 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p $TARGET_DIR
+COPY --from=builder $TARGET_DIR $TARGET_DIR
+
+RUN ln -sf $TARGET_DIR/env.sh /etc/profile.d/python2.7.sh
+
+ENTRYPOINT [ "/bin/bash", "-l" ]
