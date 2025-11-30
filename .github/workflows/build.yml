@@ -207,7 +207,7 @@ jobs:
           - { os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
           - { os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
           - { os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64" }
-          - { os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64" }
           - { os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
           - { os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
           - { os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
