@@ -1,4 +1,4 @@
-name: Build Python 2.7.18 with OpenSSL 1.1.1w
+name: Build Python 2.7.18 with OpenSSL 1.1.1zd
 
 on:
   workflow_dispatch:
@@ -79,13 +79,13 @@ jobs:
           docker create --name extract --platform ${{ matrix.platform }} \
             ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           docker cp extract:/opt/python2.7 ./python2.7
-          tar -czvf python-2.7.18-openssl1.1.1w-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.tar.gz python2.7
+          tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.tar.gz python2.7
           docker rm extract
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-2.7.18-openssl1.1.1w-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
+          name: python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
           path: "*.tar.gz"
           retention-days: 7
 
@@ -107,9 +107,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
-          name: Python 2.7.18 + OpenSSL 1.1.1w - ${{ inputs.version }}
+          name: Python 2.7.18 + OpenSSL 1.1.1zd - ${{ inputs.version }}
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: false
-
