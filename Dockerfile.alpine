@@ -69,7 +69,7 @@ RUN mkdir -p $TARGET_DIR
 COPY --from=python-build $TARGET_DIR $TARGET_DIR
 
 # Test Python & OpenSSL are working
-RUN . $TARGET_DIR/env.sh && python2.7 -c "import ssl; print(ssl.OPENSSL_VERSION)" && python2.7 --version
+RUN . $TARGET_DIR/env.sh && python2.7 -c "import ssl; print(ssl.OPENSSL_VERSION); assert '1.1.1zd' in ssl.OPENSSL_VERSION" && python2.7 --version
 
 # Export the environment variables for the Python 2.7 interpreter
 RUN ln -sf $TARGET_DIR/env.sh /etc/profile.d/python2.7.sh
