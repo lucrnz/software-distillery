@@ -24,23 +24,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Alpine variants (all support linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6)
-          - { os: alpine, version: "3.22", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.21", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.20", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.19", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.18", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.17", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.16", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: alpine, version: "3.15", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          # Debian variants (all support linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6)
-          - { os: debian, version: bookworm, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: debian, version: trixie, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          - { os: debian, version: bullseye, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          # Ubuntu variants (noble/jammy: linux/amd64, linux/arm64; focal: + linux/386, linux/arm/v7, linux/arm/v6)
+          # Alpine variants
+          - { os: alpine, version: "3.22", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.21", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.20", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.19", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.18", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.17", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.16", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.15", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          # Debian variants
+          - { os: debian, version: bookworm, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: debian, version: trixie, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: debian, version: bullseye, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          # Ubuntu variants
           - { os: ubuntu, version: noble, platforms: ["linux/amd64", "linux/arm64"] }
           - { os: ubuntu, version: jammy, platforms: ["linux/amd64", "linux/arm64"] }
-          - { os: ubuntu, version: focal, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: ubuntu, version: focal, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
 
     steps:
       - name: Checkout
@@ -96,8 +96,6 @@ jobs:
               "linux/amd64") arch="amd64" ;;
               "linux/arm64") arch="aarch64" ;;
               "linux/386") arch="386" ;;
-              "linux/arm/v7") arch="armv7" ;;
-              "linux/arm/v6") arch="armv6" ;;
               *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;  # Fallback
             esac
             docker pull --platform $platform ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
