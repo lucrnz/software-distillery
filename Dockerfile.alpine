@@ -18,7 +18,7 @@ RUN apk add --no-cache \
 RUN cd /tmp && \
   OPENSSL_TAR="openssl-1.1.1w.tar.gz" && \
   OPENSSL_DIR="openssl-1.1.1w" && \
-  curl -LO https://www.openssl.org/source/$OPENSSL_TAR && \
+  curl -fLO https://www.openssl.org/source/$OPENSSL_TAR && \
   echo "cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8 $OPENSSL_TAR" | sha256sum -c - && \
   tar xzf $OPENSSL_TAR && rm $OPENSSL_TAR && \
   cd $OPENSSL_DIR && \
@@ -34,7 +34,7 @@ RUN cd /tmp && \
 RUN source $TARGET_DIR/env.sh && cd /tmp && \
   PYTHON_TAR="Python-2.7.18.tgz" && \
   PYTHON_DIR="Python-2.7.18" && \
-  curl -LO https://www.python.org/ftp/python/2.7.18/$PYTHON_TAR && \
+  curl -fLO https://www.python.org/ftp/python/2.7.18/$PYTHON_TAR && \
   echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814 $PYTHON_TAR" | sha256sum -c - && \
   tar xzf $PYTHON_TAR && rm $PYTHON_TAR && \
   cd $PYTHON_DIR && \
