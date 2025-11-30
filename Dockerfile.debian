@@ -76,7 +76,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libffi8 zlib1g libbz2-1.0 libncurses6 libreadline8 tk libgdbm6 libsqlite3-0 liblzma5 \
+    zlib1g libbz2-1.0 libncurses6 libreadline8 tk libgdbm6 libsqlite3-0 liblzma5 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p $TARGET_DIR
