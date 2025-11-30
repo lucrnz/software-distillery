@@ -25,22 +25,22 @@ jobs:
       matrix:
         include:
           # Alpine variants
-          - { os: alpine, version: "3.22", platform: linux/amd64, arch: amd64 }
-          - { os: alpine, version: "3.22", platform: linux/arm64, arch: arm64 }
-          - { os: alpine, version: "3.15", platform: linux/amd64, arch: amd64 }
-          - { os: alpine, version: "3.15", platform: linux/arm64, arch: arm64 }
+          - { os: alpine, version: "3.22", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.21", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.20", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.19", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.18", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.17", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.16", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: alpine, version: "3.15", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           # Debian variants
-          - { os: debian, version: bookworm, platform: linux/amd64, arch: amd64 }
-          - { os: debian, version: bookworm, platform: linux/arm64, arch: arm64 }
-          - { os: debian, version: trixie, platform: linux/amd64, arch: amd64 }
-          - { os: debian, version: trixie, platform: linux/arm64, arch: arm64 }
+          - { os: debian, version: bookworm, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: debian, version: trixie, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
+          - { os: debian, version: bullseye, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           # Ubuntu variants
-          - { os: ubuntu, version: noble, platform: linux/amd64, arch: amd64 }
-          - { os: ubuntu, version: noble, platform: linux/arm64, arch: arm64 }
-          - { os: ubuntu, version: jammy, platform: linux/amd64, arch: amd64 }
-          - { os: ubuntu, version: jammy, platform: linux/arm64, arch: arm64 }
-          - { os: ubuntu, version: focal, platform: linux/amd64, arch: amd64 }
-          - { os: ubuntu, version: focal, platform: linux/arm64, arch: arm64 }
+          - { os: ubuntu, version: noble, platforms: ["linux/amd64", "linux/arm64"] }
+          - { os: ubuntu, version: jammy, platforms: ["linux/amd64", "linux/arm64"] }
+          - { os: ubuntu, version: focal, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
 
     steps:
       - name: Checkout
@@ -81,27 +81,40 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.${{ steps.build-args.outputs.dockerfile }}
-          platforms: ${{ matrix.platform }}
+          platforms: ${{ join(matrix.platforms, ',') }}
           push: true
           build-args: |
             ${{ steps.build-args.outputs.build_args }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
+            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
 
       - name: Extract binaries from container
         run: |
-          docker pull --platform ${{ matrix.platform }} ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
-          docker create --name extract --platform ${{ matrix.platform }} \
-            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
-          docker cp extract:/opt/python2.7 ./python2.7
-          tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.tar.gz python2.7
-          docker rm extract
+          # Loop over each platform and extract binaries
+          for platform in ${{ join(matrix.platforms, ' ') }}; do
+            case $platform in
+              "linux/amd64") arch="amd64" ;;
+              "linux/arm64") arch="aarch64" ;;
+              "linux/386") arch="386" ;;
+              "linux/arm/v7") arch="armv7" ;;
+              "linux/arm/v6") arch="armv6" ;;
+              *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;  # Fallback
+            esac
+            docker pull --platform $platform ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
+            docker create --name extract-$arch --platform $platform \
+              ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
+            mkdir -p python2.7-$arch
+            docker cp extract-$arch:/opt/python2.7 ./python2.7-$arch/
+            tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${arch}.tar.gz python2.7-$arch
+            docker rm extract-$arch
+            rm -rf python2.7-$arch
+          done
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}
-          path: "*.tar.gz"
+          name: python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}
+          path: python-*.tar.gz
           retention-days: 7
 
   release:
