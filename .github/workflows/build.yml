@@ -3,10 +3,6 @@ name: Build and Release Python 2.7.18 with OpenSSL 1.1.1zd
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
-        required: true
-        type: string
       create_release:
         description: 'Create GitHub Release'
         required: false
@@ -18,33 +14,78 @@ permissions:
   packages: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Generate version tag
+        id: version
+        run: |
+          VERSION="v$(date -u +'%Y%m%d-%H%M')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
   build:
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           # Alpine variants
-          - { os: alpine, version: "3.22", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.21", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.20", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.19", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.18", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.17", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.16", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: alpine, version: "3.15", platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: alpine, version: "3.22", platform: "linux/amd64" }
+          - { os: alpine, version: "3.22", platform: "linux/arm64" }
+          - { os: alpine, version: "3.22", platform: "linux/386" }
+          - { os: alpine, version: "3.21", platform: "linux/amd64" }
+          - { os: alpine, version: "3.21", platform: "linux/arm64" }
+          - { os: alpine, version: "3.21", platform: "linux/386" }
+          - { os: alpine, version: "3.20", platform: "linux/amd64" }
+          - { os: alpine, version: "3.20", platform: "linux/arm64" }
+          - { os: alpine, version: "3.20", platform: "linux/386" }
+          - { os: alpine, version: "3.19", platform: "linux/amd64" }
+          - { os: alpine, version: "3.19", platform: "linux/arm64" }
+          - { os: alpine, version: "3.19", platform: "linux/386" }
+          - { os: alpine, version: "3.18", platform: "linux/amd64" }
+          - { os: alpine, version: "3.18", platform: "linux/arm64" }
+          - { os: alpine, version: "3.18", platform: "linux/386" }
+          - { os: alpine, version: "3.17", platform: "linux/amd64" }
+          - { os: alpine, version: "3.17", platform: "linux/arm64" }
+          - { os: alpine, version: "3.17", platform: "linux/386" }
+          - { os: alpine, version: "3.16", platform: "linux/amd64" }
+          - { os: alpine, version: "3.16", platform: "linux/arm64" }
+          - { os: alpine, version: "3.16", platform: "linux/386" }
+          - { os: alpine, version: "3.15", platform: "linux/amd64" }
+          - { os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { os: alpine, version: "3.15", platform: "linux/386" }
           # Debian variants
-          - { os: debian, version: bookworm, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: debian, version: trixie, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
-          - { os: debian, version: bullseye, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: debian, version: bookworm, platform: "linux/amd64" }
+          - { os: debian, version: bookworm, platform: "linux/arm64" }
+          - { os: debian, version: bookworm, platform: "linux/386" }
+          - { os: debian, version: trixie, platform: "linux/amd64" }
+          - { os: debian, version: trixie, platform: "linux/arm64" }
+          - { os: debian, version: trixie, platform: "linux/386" }
+          - { os: debian, version: bullseye, platform: "linux/amd64" }
+          - { os: debian, version: bullseye, platform: "linux/arm64" }
+          - { os: debian, version: bullseye, platform: "linux/386" }
           # Ubuntu variants
-          - { os: ubuntu, version: noble, platforms: ["linux/amd64", "linux/arm64"] }
-          - { os: ubuntu, version: jammy, platforms: ["linux/amd64", "linux/arm64"] }
-          - { os: ubuntu, version: focal, platforms: ["linux/amd64", "linux/arm64", "linux/386"] }
+          - { os: ubuntu, version: noble, platform: "linux/amd64" }
+          - { os: ubuntu, version: noble, platform: "linux/arm64" }
+          - { os: ubuntu, version: jammy, platform: "linux/amd64" }
+          - { os: ubuntu, version: jammy, platform: "linux/arm64" }
+          - { os: ubuntu, version: focal, platform: "linux/amd64" }
+          - { os: ubuntu, version: focal, platform: "linux/arm64" }
+          - { os: ubuntu, version: focal, platform: "linux/386" }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare platform pair
+        id: platform
+        run: |
+          platform=${{ matrix.platform }}
+          echo "pair=${platform//\//-}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -76,31 +117,132 @@ jobs:
             echo "build_args=DEBIAN_VERSION=${{ matrix.version }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.${{ steps.build-args.outputs.dockerfile }}
-          platforms: ${{ join(matrix.platforms, ',') }}
-          push: true
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             ${{ steps.build-args.outputs.build_args }}
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.os }}-${{ matrix.version }}-${{ steps.platform.outputs.pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Alpine variants
+          - { os: alpine, version: "3.22" }
+          - { os: alpine, version: "3.21" }
+          - { os: alpine, version: "3.20" }
+          - { os: alpine, version: "3.19" }
+          - { os: alpine, version: "3.18" }
+          - { os: alpine, version: "3.17" }
+          - { os: alpine, version: "3.16" }
+          - { os: alpine, version: "3.15" }
+          # Debian variants
+          - { os: debian, version: bookworm }
+          - { os: debian, version: trixie }
+          - { os: debian, version: bullseye }
+          # Ubuntu variants
+          - { os: ubuntu, version: noble }
+          - { os: ubuntu, version: jammy }
+          - { os: ubuntu, version: focal }
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.os }}-${{ matrix.version }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
+
+  extract:
+    needs: [prepare, merge]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Alpine variants with platforms
+          - { os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64 linux/386" }
+          # Debian variants with platforms
+          - { os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: debian, version: trixie, platforms: "linux/amd64 linux/arm64 linux/386" }
+          - { os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64 linux/386" }
+          # Ubuntu variants with platforms
+          - { os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64 linux/386" }
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract binaries from container
         run: |
-          # Loop over each platform and extract binaries
-          for platform in ${{ join(matrix.platforms, ' ') }}; do
+          IMAGE="ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
+          for platform in ${{ matrix.platforms }}; do
             case $platform in
               "linux/amd64") arch="amd64" ;;
               "linux/arm64") arch="aarch64" ;;
               "linux/386") arch="386" ;;
-              *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;  # Fallback
+              *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;
             esac
-            docker pull --platform $platform ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
-            docker create --name extract-$arch --platform $platform \
-              ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
+            echo "Extracting binaries for $platform ($arch)..."
+            docker pull --platform $platform "$IMAGE"
+            docker create --name extract-$arch --platform $platform "$IMAGE"
             mkdir -p python2.7-$arch
             docker cp extract-$arch:/opt/python2.7 ./python2.7-$arch/
             tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${arch}.tar.gz python2.7-$arch
@@ -116,14 +258,15 @@ jobs:
           retention-days: 7
 
   release:
-    needs: build
+    needs: [prepare, extract]
     runs-on: ubuntu-latest
-    if: ${{ inputs.create_release == true && inputs.version != '' }}
+    if: ${{ inputs.create_release == true }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: python-*
           merge-multiple: true
 
       - name: List artifacts
@@ -132,8 +275,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: Python 2.7.18 + OpenSSL 1.1.1zd - ${{ inputs.version }}
+          tag_name: ${{ needs.prepare.outputs.version }}
+          name: Python 2.7.18 + OpenSSL 1.1.1zd - ${{ needs.prepare.outputs.version }}
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
