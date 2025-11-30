@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         description: 'Release version (e.g., v1.0.0)'
-        required: false
+        required: true
         type: string
       create_release:
         description: 'Create GitHub Release'
@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Alpine variants
+          # Alpine variants (all support linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6)
           - { os: alpine, version: "3.22", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: alpine, version: "3.21", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: alpine, version: "3.20", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
@@ -33,11 +33,11 @@ jobs:
           - { os: alpine, version: "3.17", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: alpine, version: "3.16", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: alpine, version: "3.15", platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          # Debian variants
+          # Debian variants (all support linux/amd64, linux/arm64, linux/386, linux/arm/v7, linux/arm/v6)
           - { os: debian, version: bookworm, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: debian, version: trixie, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
           - { os: debian, version: bullseye, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
-          # Ubuntu variants
+          # Ubuntu variants (noble/jammy: linux/amd64, linux/arm64; focal: + linux/386, linux/arm/v7, linux/arm/v6)
           - { os: ubuntu, version: noble, platforms: ["linux/amd64", "linux/arm64"] }
           - { os: ubuntu, version: jammy, platforms: ["linux/amd64", "linux/arm64"] }
           - { os: ubuntu, version: focal, platforms: ["linux/amd64", "linux/arm64", "linux/386", "linux/arm/v7", "linux/arm/v6"] }
@@ -86,7 +86,7 @@ jobs:
           build-args: |
             ${{ steps.build-args.outputs.build_args }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
+            ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
 
       - name: Extract binaries from container
         run: |
@@ -100,9 +100,9 @@ jobs:
               "linux/arm/v6") arch="armv6" ;;
               *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;  # Fallback
             esac
-            docker pull --platform $platform ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
+            docker pull --platform $platform ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
             docker create --name extract-$arch --platform $platform \
-              ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}
+              ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ inputs.version }}
             mkdir -p python2.7-$arch
             docker cp extract-$arch:/opt/python2.7 ./python2.7-$arch/
             tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${arch}.tar.gz python2.7-$arch
