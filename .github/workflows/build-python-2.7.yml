@@ -125,7 +125,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.${{ steps.build-args.outputs.dockerfile }}
+          file: ./python-2.7/Dockerfile.${{ steps.build-args.outputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
