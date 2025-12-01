@@ -1,0 +1,15 @@
+FROM ghcr.io/lucrnz/deadsnakes-binaries-test:python-2.7.18-13ubuntu1.5-openssl1.1.1zd-alpine-3.22-released-20251201-0406 AS python2.7
+
+FROM alpine:3.22 AS target
+
+# Install runtime dependencies
+RUN apk add --no-cache libffi zlib bzip2 ncurses-libs readline tk gdbm sqlite-libs xz-libs
+
+COPY --from=python2.7 /opt/python2.7 /opt/python2.7
+
+# Export the environment variables
+RUN ln -sf /opt/python2.7/env.sh /etc/profile.d/python2.7.sh
+
+# Provide shell entrypoint
+WORKDIR /root
+ENTRYPOINT [ "/bin/sh", "-l" ]
