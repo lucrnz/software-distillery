@@ -1,4 +1,7 @@
-name: Build and Release Python 2.7.18 with OpenSSL 1.1.1zd
+name: Build and Release Python 2.7.18-13ubuntu1.5 with OpenSSL 1.1.1zd
+
+env:
+  ARTIFACT_NAME: python-2.7.18-13ubuntu1.5-openssl1.1.1zd
 
 on:
   workflow_dispatch:
@@ -188,12 +191,12 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
+            -t ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
 
   extract:
     needs: [prepare, merge]
@@ -232,7 +235,7 @@ jobs:
 
       - name: Extract binaries from container
         run: |
-          IMAGE="ghcr.io/${{ github.repository }}:${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
           for platform in ${{ matrix.platforms }}; do
             case $platform in
               "linux/amd64") arch="amd64" ;;
@@ -245,7 +248,7 @@ jobs:
             docker create --name extract-$arch --platform $platform "$IMAGE"
             mkdir -p python2.7-$arch
             docker cp extract-$arch:/opt/python2.7 ./python2.7-$arch/
-            tar -czvf python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}-${arch}.tar.gz python2.7-$arch
+            tar -czvf ${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}-${arch}.tar.gz python2.7-$arch
             docker rm extract-$arch
             rm -rf python2.7-$arch
           done
@@ -253,8 +256,8 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: python-2.7.18-openssl1.1.1zd-${{ matrix.os }}-${{ matrix.version }}
-          path: python-*.tar.gz
+          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}
+          path: ${{ env.ARTIFACT_NAME }}-*.tar.gz
           retention-days: 7
 
   release:
@@ -266,7 +269,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: python-*
+          pattern: ${{ env.ARTIFACT_NAME }}-*
           merge-multiple: true
 
       - name: List artifacts
@@ -276,7 +279,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
-          name: Python 2.7.18 + OpenSSL 1.1.1zd - ${{ needs.prepare.outputs.version }}
+          name: Python 2.7.18-13ubuntu1.5 + OpenSSL 1.1.1zd - ${{ needs.prepare.outputs.version }}
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
