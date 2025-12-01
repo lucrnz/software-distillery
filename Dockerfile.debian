@@ -2,10 +2,11 @@ ARG DEBIAN_VERSION=bookworm
 ARG DEBIAN_DISTRO=debian
 
 # Base downloader image used to perform any secure download.
-FROM ${DEBIAN_DISTRO}:latest AS curl
+FROM debian:stable-slim AS curl
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Base builder image - to build software for our target
@@ -19,15 +20,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     liblzma-dev libffi-dev perl \
     && rm -rf /var/lib/apt/lists/*
 
-# Python downloader image - to download the Python 2.7 source code
-FROM curl AS python-download
+# Download patched Python 2.7 source code from Ubuntu
+FROM debian:stable-slim AS python-download
+ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 WORKDIR /opt
-RUN TARBALL="Python-2.7.18.tgz" && \
-    curl -fLO https://www.python.org/ftp/python/2.7.18/$TARBALL && \
-    echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814 $TARBALL" | sha256sum -c - && \
-    tar xzf $TARBALL && rm $TARBALL
 
-# OpenSSL downloader image - to download the patched OpenSSLv1 source code - https://github.com/kzalewski/openssl-1.1.1
+RUN apt-get update && apt-get install -y \
+    dpkg-dev curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fL -o python2.7_2.7.18.orig.tar.gz https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz && \
+  echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814  python2.7_2.7.18.orig.tar.gz" | sha256sum -c - && \
+  curl -fLO https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.dsc && \
+  echo "09aca7949974a9366cb1500c47b49537e93522351dc58a892084698c6e62aa0b  python2.7_2.7.18-13ubuntu1.5.dsc" | sha256sum -c - && \
+  curl -fLO https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.diff.gz
+
+RUN dpkg-source -x python2.7_2.7.18-13ubuntu1.5.dsc
+
+# Download the patched OpenSSLv1 source code - https://github.com/kzalewski/openssl-1.1.1
 FROM curl AS openssl-download
 WORKDIR /opt
 RUN OPENSSL_VERSION="1.1.1zd" && \
@@ -54,12 +65,12 @@ RUN TARGET_OSSL_DIR=$TARGET_DIR/openssl && \
 FROM builder AS python-build
 ENV TARGET_DIR=/opt/python2.7
 
-COPY --from=python-download /opt/Python-2.7.18 /opt/Python-2.7.18
+COPY --from=python-download /opt/python2.7-2.7.18 /opt/python2.7-src
 COPY --from=openssl-build $TARGET_DIR/openssl $TARGET_DIR/openssl
 
-WORKDIR /opt/Python-2.7.18
+WORKDIR /opt/python2.7-src
 
-# Install Python 2.7.18 from source
+# Build Python 2.7 from source
 RUN . $TARGET_DIR/openssl/env.sh && \
     LDFLAGS="-L$TARGET_DIR/openssl/lib" CPPFLAGS="-I$TARGET_DIR/openssl/include" \
     ./configure --prefix=$TARGET_DIR --with-openssl=$TARGET_DIR/openssl && \
