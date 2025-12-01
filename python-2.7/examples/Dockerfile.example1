@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y \
 ## This example installs it from the tarball
 RUN ARCH=$(dpkg --print-architecture) && \
   if [ "$ARCH" = "amd64" ]; then \
-      URL="https://github.com/lucrnz/deadsnakes-binaries-test/releases/download/released-20251201-0406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-amd64.tar.gz" && \
-      HASH="97de1c724f1e10be9d6e442d3d9ea399158c9cf6e0aa000255da64ea21eeaf22" ; \
+      URL="https://github.com/lucrnz/software-distillery/releases/download/released-20251201-1406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-amd64.tar.gz" && \
+      HASH="512134ec93b0531db8217ac2603a5b66bc709fbb77329e89168681a5065b9dac" ; \
   elif [ "$ARCH" = "arm64" ]; then \
-      URL="https://github.com/lucrnz/deadsnakes-binaries-test/releases/download/released-20251201-0406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-aarch64.tar.gz" && \
-      HASH="baec456c14a3a61de119c31c756dac28ef661928186adcb3846a33bb21198657" ; \
+      URL="https://github.com/lucrnz/software-distillery/releases/download/released-20251201-1406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-aarch64.tar.gz" && \
+      HASH="f14730a7e3b7cc3a0c6bc0ae1b2985779036cdc6c349452b239c4bc8941a4b03" ; \
   else \
       echo "Unsupported architecture: $ARCH" && exit 1 ; \
   fi && \

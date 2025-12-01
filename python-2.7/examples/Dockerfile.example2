@@ -1,4 +1,4 @@
-FROM ghcr.io/lucrnz/deadsnakes-binaries-test:python-2.7.18-13ubuntu1.5-openssl1.1.1zd-alpine-3.22-released-20251201-0406 AS python2.7
+FROM ghcr.io/lucrnz/software-distillery:python-2.7.18-13ubuntu1.5-openssl1.1.1zd-alpine-3.22-released-20251201-1406 AS python2.7
 
 FROM alpine:3.22 AS target
 
