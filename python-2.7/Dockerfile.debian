@@ -6,19 +6,19 @@ FROM debian:stable-slim AS curl
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+  curl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Base builder image - to build software for our target
 FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS builder
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libc6-dev linux-libc-dev make \
-    zlib1g-dev libbz2-dev libncurses-dev \
-    libsqlite3-dev libreadline-dev tk-dev libgdbm-dev \
-    liblzma-dev libffi-dev perl \
-    && rm -rf /var/lib/apt/lists/*
+  gcc libc6-dev linux-libc-dev make \
+  zlib1g-dev libbz2-dev libncurses-dev \
+  libsqlite3-dev libreadline-dev tk-dev libgdbm-dev \
+  liblzma-dev libffi-dev perl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Download patched Python 2.7 source code from Ubuntu
 FROM debian:stable-slim AS python-download
@@ -27,8 +27,8 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 WORKDIR /opt
 
 RUN apt-get update && apt-get install -y \
-    dpkg-dev curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+  dpkg-dev curl ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
 
 RUN curl -fL -o python2.7_2.7.18.orig.tar.gz https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz && \
   echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814  python2.7_2.7.18.orig.tar.gz" | sha256sum -c - && \
@@ -42,11 +42,11 @@ RUN dpkg-source -x python2.7_2.7.18-13ubuntu1.5.dsc
 FROM curl AS openssl-download
 WORKDIR /opt
 RUN OPENSSL_VERSION="1.1.1zd" && \
-    OPENSSL_HASH="74642b9963082a69b66ea3f4f2ee74a22d0570ed3750daa34b7cf9d2dd9ccbbd" && \
-    curl -fL -o openssl.tgz https://github.com/kzalewski/openssl-1.1.1/archive/refs/tags/${OPENSSL_VERSION}.tar.gz && \
-    echo "${OPENSSL_HASH} openssl.tgz" | sha256sum -c - && \
-    tar xzf openssl.tgz && rm openssl.tgz && \
-    mv openssl-1.1.1-${OPENSSL_VERSION} openssl-${OPENSSL_VERSION}
+  OPENSSL_HASH="74642b9963082a69b66ea3f4f2ee74a22d0570ed3750daa34b7cf9d2dd9ccbbd" && \
+  curl -fL -o openssl.tgz https://github.com/kzalewski/openssl-1.1.1/archive/refs/tags/${OPENSSL_VERSION}.tar.gz && \
+  echo "${OPENSSL_HASH} openssl.tgz" | sha256sum -c - && \
+  tar xzf openssl.tgz && rm openssl.tgz && \
+  mv openssl-1.1.1-${OPENSSL_VERSION} openssl-${OPENSSL_VERSION}
 
 # OpenSSL build stage
 FROM builder AS openssl-build
@@ -56,10 +56,10 @@ COPY --from=openssl-download /opt/openssl-1.1.1zd /opt/openssl
 WORKDIR /opt/openssl
 
 RUN TARGET_OSSL_DIR=$TARGET_DIR/openssl && \
-    ./config --prefix=$TARGET_OSSL_DIR --openssldir=$TARGET_OSSL_DIR shared zlib && \
-    make -j$(nproc) build_libs && \
-    make install_sw && \
-    echo "export LD_LIBRARY_PATH=$TARGET_OSSL_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}" >> $TARGET_OSSL_DIR/env.sh
+  ./config --prefix=$TARGET_OSSL_DIR --openssldir=$TARGET_OSSL_DIR shared zlib && \
+  make -j$(nproc) build_libs && \
+  make install_sw && \
+  echo "export LD_LIBRARY_PATH=$TARGET_OSSL_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}" >> $TARGET_OSSL_DIR/env.sh
 
 # Python build stage
 FROM builder AS python-build
@@ -72,13 +72,13 @@ WORKDIR /opt/python2.7-src
 
 # Build Python 2.7 from source
 RUN . $TARGET_DIR/openssl/env.sh && \
-    LDFLAGS="-L$TARGET_DIR/openssl/lib" CPPFLAGS="-I$TARGET_DIR/openssl/include" \
-    ./configure --prefix=$TARGET_DIR --with-openssl=$TARGET_DIR/openssl && \
-    make -j$(nproc) && \
-    make altinstall && \
-    cat $TARGET_DIR/openssl/env.sh >> $TARGET_DIR/env.sh && \
-    echo "export PATH=$TARGET_DIR/bin:\$PATH" >> $TARGET_DIR/env.sh && \
-    rm $TARGET_DIR/openssl/env.sh
+  LDFLAGS="-L$TARGET_DIR/openssl/lib" CPPFLAGS="-I$TARGET_DIR/openssl/include" \
+  ./configure --prefix=$TARGET_DIR --with-openssl=$TARGET_DIR/openssl && \
+  make -j$(nproc) && \
+  make altinstall && \
+  cat $TARGET_DIR/openssl/env.sh >> $TARGET_DIR/env.sh && \
+  echo "export PATH=$TARGET_DIR/bin:\$PATH" >> $TARGET_DIR/env.sh && \
+  rm $TARGET_DIR/openssl/env.sh
 
 # Final target image
 FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS target
@@ -87,8 +87,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    zlib1g libbz2-1.0 libncurses6 libreadline8 tk libgdbm6 libsqlite3-0 liblzma5 \
-    && rm -rf /var/lib/apt/lists/*
+  zlib1g libbz2-1.0 libncurses6 libreadline8 tk libgdbm6 libsqlite3-0 liblzma5 \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p $TARGET_DIR
 COPY --from=python-build $TARGET_DIR $TARGET_DIR

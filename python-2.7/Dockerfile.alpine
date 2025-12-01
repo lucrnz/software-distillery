@@ -18,8 +18,8 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 WORKDIR /opt
 
 RUN apt-get update && apt-get install -y \
-    dpkg-dev curl ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+  dpkg-dev curl ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
 
 RUN curl -fL -o python2.7_2.7.18.orig.tar.gz https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz && \
   echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814  python2.7_2.7.18.orig.tar.gz" | sha256sum -c - && \
