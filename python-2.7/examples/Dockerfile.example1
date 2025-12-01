@@ -22,6 +22,9 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 RUN ln -sf /opt/python2.7/env.sh /etc/profile.d/python2.7.sh
 
+# Quick test
+RUN . /etc/profile.d/python2.7.sh && python2.7 -c "import ssl; print(ssl.OPENSSL_VERSION); assert '1.1.1zd' in ssl.OPENSSL_VERSION"
+
 # Provide shell entrypoint
 WORKDIR /root
 ENTRYPOINT [ "/bin/bash", "-l" ]
