@@ -5,11 +5,11 @@ RUN apt-get update && apt-get install -y \
   rm -rf /var/lib/apt/lists/*
 
 ## This example installs it from the tarball
-RUN ARCH=$(dpkg --print-architecture) && \
-  if [ "$ARCH" = "amd64" ]; then \
+RUN ARCH=$(uname -m) && \
+  if [ "$ARCH" = "x86_64" ]; then \
       URL="https://github.com/lucrnz/software-distillery/releases/download/released-20251201-1406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-amd64.tar.gz" && \
       HASH="512134ec93b0531db8217ac2603a5b66bc709fbb77329e89168681a5065b9dac" ; \
-  elif [ "$ARCH" = "arm64" ]; then \
+  elif [ "$ARCH" = "aarch64" ]; then \
       URL="https://github.com/lucrnz/software-distillery/releases/download/released-20251201-1406/python-2.7.18-13ubuntu1.5-openssl1.1.1zd-debian-trixie-aarch64.tar.gz" && \
       HASH="f14730a7e3b7cc3a0c6bc0ae1b2985779036cdc6c349452b239c4bc8941a4b03" ; \
   else \
@@ -17,7 +17,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
   fi && \
   curl -fL -o python2.7.tgz "$URL" && \
   echo "${HASH}  python2.7.tgz" | sha256sum -c - && \
-  tar -C /opt --strip-components=1 -xzf python2.7.tgz python2.7-$ARCH && \
+  tar -C /opt --strip-components=1 -xzf python2.7.tgz && \
   rm python2.7.tgz
 
 RUN ln -sf /opt/python2.7/env.sh /etc/profile.d/python2.7.sh
