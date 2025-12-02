@@ -1,14 +1,16 @@
-ARG ALPINE_VERSION=3.22
+ARG DEBIAN_VERSION=trixie
+ARG DEBIAN_DISTRO=debian
 ARG NVM_VERSION=v0.40.3
 ARG NODE_VERSION=20.19.6
 ARG YARN_VERSION=1.22.22
 
 # Base downloader image used to perform any secure download.
-FROM alpine:latest AS curl
-RUN apk add --no-cache curl ca-certificates bash
-
-# NVM doesn't work with the 'set -u' flag
-SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+FROM debian:stable-slim AS curl
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 FROM curl AS nvm-download
 ARG NVM_VERSION
@@ -22,13 +24,13 @@ RUN mkdir -p $NVM_DIR && \
   rm -f $SCRIPT_F
 
 # NVM builder
-FROM alpine:${ALPINE_VERSION} AS builder
+FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS builder
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apk add --no-cache ca-certificates openssl ncurses coreutils python3 \
-  make gcc g++ libgcc linux-headers grep util-linux binutils findutils \
-  libstdc++ curl bash wget
-
-SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates curl python3 make gcc g++ \
+  && rm -rf /var/lib/apt/lists/*
 
 ARG NODE_VERSION
 ARG YARN_VERSION
@@ -47,10 +49,13 @@ RUN . $NVM_DIR/nvm.sh && \
   yarn --version
 
 # Final target image
-FROM alpine:${ALPINE_VERSION} AS target
+FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS target
 ENV NVM_DIR=/opt/nvm
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apk add --no-cache bash ca-certificates libstdc++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # NVM requires bash to work properly
 SHELL ["/bin/bash", "-c"]
