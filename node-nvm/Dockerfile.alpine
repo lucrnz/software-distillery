@@ -1,0 +1,67 @@
+ARG ALPINE_VERSION=3.15
+ARG NVM_VERSION=v0.40.3
+ARG NODE_VERSION=20.19.6
+ARG YARN_VERSION=1.22.22
+
+# Base downloader image used to perform any secure download.
+FROM alpine:latest AS curl
+RUN apk add --no-cache curl ca-certificates bash
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+
+FROM curl AS nvm-download
+ARG NVM_VERSION
+ENV NVM_DIR=/opt/nvm
+
+RUN mkdir -p $NVM_DIR && \
+  SCRIPT_F="/tmp/nvm-install.sh" && \
+  curl -fL -o $SCRIPT_F https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh && \
+  chmod +x $SCRIPT_F && \
+  cat $SCRIPT_F | bash && \
+  rm -f $SCRIPT_F
+
+# NVM builder
+FROM alpine:${ALPINE_VERSION} AS builder
+
+RUN apk add --no-cache ca-certificates openssl ncurses coreutils python3 \
+  make gcc g++ libgcc linux-headers grep util-linux binutils findutils \
+  libstdc++ curl bash wget
+
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+
+ARG NODE_VERSION
+ARG YARN_VERSION
+ENV NVM_DIR=/opt/nvm
+
+COPY --from=nvm-download /opt/nvm /opt/nvm
+
+RUN . $NVM_DIR/nvm.sh && \
+  echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
+  nvm install $NODE_VERSION && \
+  nvm alias default $NODE_VERSION \
+  # smoke tests
+  node -v && \
+  npm -v && \
+  yarn --version
+
+# Final target image
+FROM alpine:${ALPINE_VERSION} AS target
+ENV NVM_DIR=/opt/nvm
+
+RUN apk add --no-cache bash ca-certificates libstdc++ 
+
+# NVM requires bash to work properly
+SHELL ["/bin/bash", "-c"]
+
+COPY --from=builder /opt/nvm /opt/nvm
+
+RUN ln -sf $NVM_DIR/nvm.sh /etc/profile.d/nvm.sh
+
+# Smoke test
+RUN . $NVM_DIR/nvm.sh && \
+  node -v && \
+  npm -v && \
+  yarn --version
+
+# Provide shell entrypoint
+WORKDIR /root
+ENTRYPOINT [ "/bin/bash", "-l" ]
