@@ -37,7 +37,8 @@ COPY --from=nvm-download /opt/nvm /opt/nvm
 RUN . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
   nvm install $NODE_VERSION && \
-  nvm alias default $NODE_VERSION \
+  nvm alias default $NODE_VERSION && \
+  nvm cache clear && \
   # smoke tests
   node -v && \
   npm -v && \
