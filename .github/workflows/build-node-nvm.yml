@@ -1,0 +1,469 @@
+name: Build and Release Node-NVM
+
+env:
+  NVM_VERSION: 0.40.3
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create GitHub Release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Generate version tag
+        id: version
+        run: |
+          VERSION="released-$(date -u +'%Y%m%d-%H%M')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Node 24.11.1
+          - { node_version: "24.11.1", os: alpine, version: "3.22", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.22", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.21", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.21", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.20", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.20", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.19", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.19", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.18", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.18", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.17", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.17", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.16", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.16", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.15", platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bookworm, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: debian, version: bookworm, platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: trixie, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: debian, version: trixie, platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bullseye, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: debian, version: bullseye, platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: noble, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: ubuntu, version: noble, platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/amd64" }
+          - { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/arm64" }
+          # Node 22.21.1
+          - { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.20", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.20", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.19", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.19", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.18", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.18", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.17", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.17", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.16", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.16", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.15", platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: bookworm, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: debian, version: bookworm, platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: trixie, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: debian, version: trixie, platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: bullseye, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: debian, version: bullseye, platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: noble, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: ubuntu, version: noble, platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/amd64" }
+          - { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/arm64" }
+          # Node 20.19.6
+          - { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.20", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.20", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.19", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.19", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.18", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.18", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.17", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.17", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.16", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.16", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.15", platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: bookworm, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: debian, version: bookworm, platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: trixie, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: debian, version: trixie, platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: bullseye, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: debian, version: bullseye, platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: noble, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: ubuntu, version: noble, platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: jammy, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: ubuntu, version: jammy, platform: "linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: focal, platform: "linux/amd64" }
+          - { node_version: "20.19.6", os: ubuntu, version: focal, platform: "linux/arm64" }
+          # Node 18.20.8
+          - { node_version: "18.20.8", os: alpine, version: "3.22", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.22", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.21", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.21", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.20", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.20", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.19", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.19", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.18", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.18", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.17", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.17", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.16", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.16", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.15", platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: bookworm, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: debian, version: bookworm, platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: trixie, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: debian, version: trixie, platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: bullseye, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: debian, version: bullseye, platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: noble, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: ubuntu, version: noble, platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: jammy, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: ubuntu, version: jammy, platform: "linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: focal, platform: "linux/amd64" }
+          - { node_version: "18.20.8", os: ubuntu, version: focal, platform: "linux/arm64" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare platform pair
+        id: platform
+        run: |
+          platform=${{ matrix.platform }}
+          echo "pair=${platform//\//-}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set build args
+        id: build-args
+        run: |
+          ARTIFACT_NAME="node-nvm-${{ env.NVM_VERSION }}-node-${{ matrix.node_version }}"
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          if [ "${{ matrix.os }}" = "alpine" ]; then
+            echo "dockerfile=alpine" >> $GITHUB_OUTPUT
+            echo "build_args<<EOF" >> $GITHUB_OUTPUT
+            echo "ALPINE_VERSION=${{ matrix.version }}" >> $GITHUB_OUTPUT
+            echo "NVM_VERSION=${{ env.NVM_VERSION }}" >> $GITHUB_OUTPUT
+            echo "NODE_VERSION=${{ matrix.node_version }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.os }}" = "ubuntu" ]; then
+            echo "dockerfile=debian" >> $GITHUB_OUTPUT
+            echo "build_args<<EOF" >> $GITHUB_OUTPUT
+            echo "DEBIAN_VERSION=${{ matrix.version }}" >> $GITHUB_OUTPUT
+            echo "DEBIAN_DISTRO=ubuntu" >> $GITHUB_OUTPUT
+            echo "NVM_VERSION=${{ env.NVM_VERSION }}" >> $GITHUB_OUTPUT
+            echo "NODE_VERSION=${{ matrix.node_version }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "dockerfile=debian" >> $GITHUB_OUTPUT
+            echo "build_args<<EOF" >> $GITHUB_OUTPUT
+            echo "DEBIAN_VERSION=${{ matrix.version }}" >> $GITHUB_OUTPUT
+            echo "NVM_VERSION=${{ env.NVM_VERSION }}" >> $GITHUB_OUTPUT
+            echo "NODE_VERSION=${{ matrix.node_version }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./node-nvm/Dockerfile.${{ steps.build-args.outputs.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            ${{ steps.build-args.outputs.build_args }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.node_version }}-${{ matrix.os }}-${{ matrix.version }}-${{ steps.platform.outputs.pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Node 24.11.1
+          - { node_version: "24.11.1", os: alpine, version: "3.22" }
+          - { node_version: "24.11.1", os: alpine, version: "3.21" }
+          - { node_version: "24.11.1", os: alpine, version: "3.20" }
+          - { node_version: "24.11.1", os: alpine, version: "3.19" }
+          - { node_version: "24.11.1", os: alpine, version: "3.18" }
+          - { node_version: "24.11.1", os: alpine, version: "3.17" }
+          - { node_version: "24.11.1", os: alpine, version: "3.16" }
+          - { node_version: "24.11.1", os: alpine, version: "3.15" }
+          - { node_version: "24.11.1", os: debian, version: bookworm }
+          - { node_version: "24.11.1", os: debian, version: trixie }
+          - { node_version: "24.11.1", os: debian, version: bullseye }
+          - { node_version: "24.11.1", os: ubuntu, version: noble }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy }
+          - { node_version: "24.11.1", os: ubuntu, version: focal }
+          # Node 22.21.1
+          - { node_version: "22.21.1", os: alpine, version: "3.22" }
+          - { node_version: "22.21.1", os: alpine, version: "3.21" }
+          - { node_version: "22.21.1", os: alpine, version: "3.20" }
+          - { node_version: "22.21.1", os: alpine, version: "3.19" }
+          - { node_version: "22.21.1", os: alpine, version: "3.18" }
+          - { node_version: "22.21.1", os: alpine, version: "3.17" }
+          - { node_version: "22.21.1", os: alpine, version: "3.16" }
+          - { node_version: "22.21.1", os: alpine, version: "3.15" }
+          - { node_version: "22.21.1", os: debian, version: bookworm }
+          - { node_version: "22.21.1", os: debian, version: trixie }
+          - { node_version: "22.21.1", os: debian, version: bullseye }
+          - { node_version: "22.21.1", os: ubuntu, version: noble }
+          - { node_version: "22.21.1", os: ubuntu, version: jammy }
+          - { node_version: "22.21.1", os: ubuntu, version: focal }
+          # Node 20.19.6
+          - { node_version: "20.19.6", os: alpine, version: "3.22" }
+          - { node_version: "20.19.6", os: alpine, version: "3.21" }
+          - { node_version: "20.19.6", os: alpine, version: "3.20" }
+          - { node_version: "20.19.6", os: alpine, version: "3.19" }
+          - { node_version: "20.19.6", os: alpine, version: "3.18" }
+          - { node_version: "20.19.6", os: alpine, version: "3.17" }
+          - { node_version: "20.19.6", os: alpine, version: "3.16" }
+          - { node_version: "20.19.6", os: alpine, version: "3.15" }
+          - { node_version: "20.19.6", os: debian, version: bookworm }
+          - { node_version: "20.19.6", os: debian, version: trixie }
+          - { node_version: "20.19.6", os: debian, version: bullseye }
+          - { node_version: "20.19.6", os: ubuntu, version: noble }
+          - { node_version: "20.19.6", os: ubuntu, version: jammy }
+          - { node_version: "20.19.6", os: ubuntu, version: focal }
+          # Node 18.20.8
+          - { node_version: "18.20.8", os: alpine, version: "3.22" }
+          - { node_version: "18.20.8", os: alpine, version: "3.21" }
+          - { node_version: "18.20.8", os: alpine, version: "3.20" }
+          - { node_version: "18.20.8", os: alpine, version: "3.19" }
+          - { node_version: "18.20.8", os: alpine, version: "3.18" }
+          - { node_version: "18.20.8", os: alpine, version: "3.17" }
+          - { node_version: "18.20.8", os: alpine, version: "3.16" }
+          - { node_version: "18.20.8", os: alpine, version: "3.15" }
+          - { node_version: "18.20.8", os: debian, version: bookworm }
+          - { node_version: "18.20.8", os: debian, version: trixie }
+          - { node_version: "18.20.8", os: debian, version: bullseye }
+          - { node_version: "18.20.8", os: ubuntu, version: noble }
+          - { node_version: "18.20.8", os: ubuntu, version: jammy }
+          - { node_version: "18.20.8", os: ubuntu, version: focal }
+    steps:
+      - name: Set artifact name
+        id: artifact-name
+        run: |
+          ARTIFACT_NAME="node-nvm-${{ env.NVM_VERSION }}-node-${{ matrix.node_version }}"
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.node_version }}-${{ matrix.os }}-${{ matrix.version }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${{ github.repository }}:${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
+
+  extract:
+    needs: [prepare, merge]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Node 24.11.1
+          - { node_version: "24.11.1", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
+          # Node 22.21.1
+          - { node_version: "22.21.1", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "22.21.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
+          # Node 20.19.6
+          - { node_version: "20.19.6", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "20.19.6", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
+          # Node 18.20.8
+          - { node_version: "18.20.8", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.19", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.18", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "18.20.8", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
+    steps:
+      - name: Set artifact name
+        id: artifact-name
+        run: |
+          ARTIFACT_NAME="node-nvm-${{ env.NVM_VERSION }}-node-${{ matrix.node_version }}"
+          echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract binaries from container
+        run: |
+          ARTIFACT_NAME="${{ steps.artifact-name.outputs.artifact_name }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
+          for platform in ${{ matrix.platforms }}; do
+            case $platform in
+              "linux/amd64") arch="amd64" ;;
+              "linux/arm64") arch="aarch64" ;;
+              *) arch=$(echo $platform | cut -d'/' -f2 | tr '/' '-') ;;
+            esac
+            echo "Extracting binaries for $platform ($arch)..."
+            docker pull --platform $platform "$IMAGE"
+            docker create --name extract-$arch --platform $platform "$IMAGE"
+            mkdir -p nvm-$arch
+            docker cp extract-$arch:/opt/nvm ./nvm-$arch/
+            tar -czvf ${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}-${arch}.tar.gz nvm-$arch
+            docker rm extract-$arch
+            rm -rf nvm-$arch
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}
+          path: ${{ steps.artifact-name.outputs.artifact_name }}-*.tar.gz
+          retention-days: 7
+
+  release:
+    needs: [prepare, extract]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.create_release == true }}
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: node-nvm-${{ env.NVM_VERSION }}-node-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.version }}
+          name: Node-NVM ${{ env.NVM_VERSION }} - ${{ needs.prepare.outputs.version }}
+          files: artifacts/*.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false

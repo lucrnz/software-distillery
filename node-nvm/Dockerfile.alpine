@@ -1,6 +1,6 @@
 ARG ALPINE_VERSION=3.22
-ARG NVM_VERSION=v0.40.3
-ARG NODE_VERSION=20.19.6
+ARG NVM_VERSION=0.40.3
+ARG NODE_VERSION=24.11.1
 ARG YARN_VERSION=1.22.22
 
 # Base downloader image used to perform any secure download.
@@ -16,7 +16,8 @@ ENV NVM_DIR=/opt/nvm
 
 RUN mkdir -p $NVM_DIR && \
   SCRIPT_F="/tmp/nvm-install.sh" && \
-  curl -fL -o $SCRIPT_F https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh && \
+  NVM_URL="https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/install.sh" && \
+  curl -fL -o $SCRIPT_F $NVM_URL && \
   chmod +x $SCRIPT_F && \
   bash $SCRIPT_F && \
   rm -f $SCRIPT_F
