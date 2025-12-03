@@ -1,11 +1,12 @@
 ARG ALPINE_VERSION=3.22
 ARG LLVM_VERSION=19.1.7
+ARG LINK_JOBS=8
 
 FROM alpine:latest AS curl
 
 RUN apk add --no-cache curl ca-certificates
 
-FROM curl as clang-download
+FROM curl AS clang-download
 ARG LLVM_VERSION
 WORKDIR /download
 
@@ -13,6 +14,8 @@ RUN LLVM_URL="https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-${L
   curl -fL -o llvm.tgz $LLVM_URL
 
 FROM alpine:${ALPINE_VERSION} AS builder
+
+ARG LINK_JOBS
 
 RUN apk add --no-cache \
   build-base \
@@ -41,17 +44,19 @@ RUN tar --strip-components=1 -xzf llvm.tgz && \
   mkdir -p ./llvm-project && \
   cd ./llvm-project && \
   cmake -G Ninja \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DLLVM_ENABLE_PROJECTS="clang;lld" \
-      -DLLVM_TARGETS_TO_BUILD="$TARGETS" \
-      -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
-      -DLLVM_ENABLE_LIBSTDCXX=ON \
-      -DLLVM_ENABLE_LTO=ON \
-      -DLLVM_ENABLE_LIBXML2=ON \
-      -DLLVM_INCLUDE_TESTS=OFF \
-      -DLLVM_INCLUDE_EXAMPLES=OFF \
-      -DCMAKE_INSTALL_PREFIX=/opt/clang19 \
-      ../llvm && \
+  -DCMAKE_BUILD_TYPE=Release \
+  -G Ninja \
+    -DLLVM_ENABLE_PROJECTS="clang" \
+    -DLLVM_TARGETS_TO_BUILD="$TARGETS" \
+    -DLLVM_ENABLE_RUNTIMES="" \
+    -DLLVM_ENABLE_LIBCXX=ON \
+    -DLLVM_ENABLE_LIBSTDCXX=OFF \
+    -DLLVM_ENABLE_LTO=Thin \
+    -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_EXAMPLES=OFF \
+    -DLLVM_PARALLEL_LINK_JOBS=${LINK_JOBS} \
+    -DCMAKE_INSTALL_PREFIX=/opt/clang19 \
+    ../llvm && \
   ninja -j$(nproc) && \
   ninja install && \
   cd /opt/llvm-build-workspace && \

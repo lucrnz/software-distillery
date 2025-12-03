@@ -36,18 +36,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { version: "3.20", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
-          - { version: "3.19", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
-          - { version: "3.18", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
-          - { version: "3.17", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
-          - { version: "3.16", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
-          - { version: "3.15", platform: "linux/amd64", runner: "ubicloud-standard-16" }
-          - { version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.20", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { version: "3.19", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { version: "3.18", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { version: "3.17", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { version: "3.16", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { version: "3.15", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
 
     steps:
       - name: Checkout
@@ -81,6 +81,7 @@ jobs:
           echo "build_args<<EOF" >> $GITHUB_OUTPUT
           echo "ALPINE_VERSION=${{ matrix.version }}" >> $GITHUB_OUTPUT
           echo "LLVM_VERSION=${{ env.LLVM_VERSION }}" >> $GITHUB_OUTPUT
+          echo "LINK_JOBS=10" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build and push by digest
@@ -93,6 +94,8 @@ jobs:
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             ${{ steps.build-args.outputs.build_args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Export digest
         run: |
@@ -237,4 +240,3 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
-
