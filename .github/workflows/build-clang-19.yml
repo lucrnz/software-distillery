@@ -31,23 +31,23 @@ jobs:
 
   build:
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { version: "3.20", platform: "linux/amd64" }
-          - { version: "3.20", platform: "linux/arm64" }
-          - { version: "3.19", platform: "linux/amd64" }
-          - { version: "3.19", platform: "linux/arm64" }
-          - { version: "3.18", platform: "linux/amd64" }
-          - { version: "3.18", platform: "linux/arm64" }
-          - { version: "3.17", platform: "linux/amd64" }
-          - { version: "3.17", platform: "linux/arm64" }
-          - { version: "3.16", platform: "linux/amd64" }
-          - { version: "3.16", platform: "linux/arm64" }
-          - { version: "3.15", platform: "linux/amd64" }
-          - { version: "3.15", platform: "linux/arm64" }
+          - { version: "3.20", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.19", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.18", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.17", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.16", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { version: "3.15", platform: "linux/amd64", runner: "ubicloud-standard-16" }
+          - { version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
 
     steps:
       - name: Checkout
