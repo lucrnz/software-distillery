@@ -2,6 +2,7 @@ name: Build and Release Clang-19
 
 env:
   LLVM_VERSION: 19.1.7
+  RUNNER_X64: tenki-standard-large-plus-16c-32g
 
 on:
   workflow_dispatch:
@@ -36,17 +37,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { version: "3.20", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          - { version: "3.19", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          - { version: "3.18", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          - { version: "3.17", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          - { version: "3.16", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          - { version: "3.15", platform: "linux/amd64", runner: "ubicloud-standard-32" }
+          - { version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           - { version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
 
     steps:
