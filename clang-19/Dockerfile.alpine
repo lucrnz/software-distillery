@@ -1,0 +1,75 @@
+ARG ALPINE_VERSION=3.22
+ARG LLVM_VERSION=19.1.7
+
+FROM alpine:latest AS curl
+
+RUN apk add --no-cache curl ca-certificates
+
+FROM curl as clang-download
+ARG LLVM_VERSION
+WORKDIR /download
+
+RUN LLVM_URL="https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-${LLVM_VERSION}.tar.gz" && \
+  curl -fL -o llvm.tgz $LLVM_URL
+
+FROM alpine:${ALPINE_VERSION} AS builder
+
+RUN apk add --no-cache \
+  build-base \
+  cmake \
+  git \
+  python3 \
+  ninja \
+  libxml2-dev \
+  zlib-dev \
+  ncurses-dev \
+  linux-headers
+
+WORKDIR /opt/llvm-build-workspace
+COPY --from=clang-download /download/llvm.tgz /opt/llvm-build-workspace/llvm.tgz
+
+RUN tar --strip-components=1 -xzf llvm.tgz && \
+  rm llvm.tgz && \
+  ARCH=$(uname -m) && \
+  if [ "$ARCH" = "x86_64" ]; then \
+      TARGETS="X86"; \
+  elif [ "$ARCH" = "aarch64" ]; then \
+      TARGETS="AArch64"; \
+  else \
+      echo "Unsupported arch: $ARCH"; exit 1; \
+  fi && \
+  mkdir -p ./llvm-project && \
+  cd ./llvm-project && \
+  cmake -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DLLVM_ENABLE_PROJECTS="clang;lld" \
+      -DLLVM_TARGETS_TO_BUILD="$TARGETS" \
+      -DLLVM_ENABLE_RUNTIMES="compiler-rt" \
+      -DLLVM_ENABLE_LIBSTDCXX=ON \
+      -DLLVM_ENABLE_LTO=ON \
+      -DLLVM_ENABLE_LIBXML2=ON \
+      -DLLVM_INCLUDE_TESTS=OFF \
+      -DLLVM_INCLUDE_EXAMPLES=OFF \
+      -DCMAKE_INSTALL_PREFIX=/opt/clang19 \
+      ../llvm && \
+  ninja -j$(nproc) && \
+  ninja install && \
+  cd /opt/llvm-build-workspace && \
+  rm -rf llvm-project && \
+  ENV_FILE="/opt/clang19/env.sh" && \
+  echo "export PATH=/opt/clang19/bin:\$PATH" >> $ENV_FILE && \
+  echo 'export CC="clang-19"' >> $ENV_FILE && \
+  echo 'export CXX="clang++-19"' >> $ENV_FILE
+
+FROM alpine:${ALPINE_VERSION} AS clang-target
+RUN apk add --no-cache \
+  musl-dev \
+  libxml2 \
+  zlib \
+  ncurses-libs
+
+COPY --from=builder /opt/clang19 /opt/clang19
+
+RUN ln -sf /opt/clang19/env.sh /etc/profile.d/clang19.sh
+
+ENTRYPOINT [ "/bin/sh", "-l" ]
