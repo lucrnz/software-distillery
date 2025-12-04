@@ -49,91 +49,91 @@ jobs:
         include:
           # Node 24.11.1
           - { node_version: "24.11.1", os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           - { node_version: "24.11.1", os: alpine, version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { node_version: "24.11.1", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          - { node_version: "24.11.1", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: debian, version: bookworm, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: debian, version: trixie, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: debian, version: bullseye, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: ubuntu, version: noble, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: debian, version: bookworm, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: debian, version: trixie, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: debian, version: bullseye, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: ubuntu, version: noble, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           # Node 20.19.6 - KEEP COMMENTED FOR NOW
           #- { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: debian, version: bookworm, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: debian, version: trixie, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: debian, version: bullseye, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: ubuntu, version: noble, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: ubuntu, version: jammy, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           #- { node_version: "20.19.6", os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          #- { node_version: "20.19.6", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
+          #- { node_version: "20.19.6", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
 
     steps:
       - name: Checkout
