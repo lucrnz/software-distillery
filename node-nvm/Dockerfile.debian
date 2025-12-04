@@ -30,16 +30,27 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl python3 make gcc g++ \
-  && rm -rf /var/lib/apt/lists/*
+  ca-certificates curl python3 make lsb-release gnupg && \
+  rm -rf /var/lib/apt/lists/*
 
+ARG DEBIAN_VERSION
 ARG NODE_VERSION
 ARG YARN_VERSION
 ENV NVM_DIR=/opt/nvm
 
 COPY --from=nvm-download /opt/nvm /opt/nvm
+COPY --from=ghcr.io/lucrnz/software-distillery:testbuild_donotuseinproduction_simple-downloader-ca67db2 /simple-downloader/ /usr/local/bin/simple-downloader
 
-RUN . $NVM_DIR/nvm.sh && \
+RUN LLVM_GPG_KEY_URL="https://apt.llvm.org/llvm-snapshot.gpg.key" && \
+  simple-downloader --output=/etc/apt/trusted.gpg.d/apt.llvm.org.asc --url="$LLVM_GPG_KEY_URL" && \
+  echo "deb https://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-20 main" | tee /etc/apt/sources.list.d/llvm.list && \
+  apt-get update && \
+  apt-get install -y --no-install-recommends clang-20 && \
+  rm -rf /var/lib/apt/lists/* && \
+  clang-20 --version && \
+  export CC=$(which clang-20) && \
+  export CXX=$(which clang++-20) && \
+  . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
   nvm install $NODE_VERSION && \
   nvm alias default $NODE_VERSION && \
