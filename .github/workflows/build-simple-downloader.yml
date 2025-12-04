@@ -51,7 +51,7 @@ jobs:
         include:
           # Native builds
           - { platform: "linux/amd64", runner: "tenki-standard-autoscale" }
-          - { platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-4x" }
+          - { platform: "linux/arm64", runner: "ubicloud-standard-8-arm" }
           # Emulated builds via QEMU
           - { platform: "linux/386", runner: "tenki-standard-autoscale" }
           - { platform: "linux/ppc64le", runner: "tenki-standard-autoscale" }

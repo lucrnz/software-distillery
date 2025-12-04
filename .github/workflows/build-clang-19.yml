@@ -48,17 +48,17 @@ jobs:
       matrix:
         include:
           - { version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.20", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           - { version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.19", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           - { version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.18", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           - { version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.17", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           - { version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.16", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           - { version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
-          - { version: "3.15", platform: "linux/arm64", runner: "warp-ubuntu-latest-arm64-32x" }
+          - { version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
 
     steps:
       - name: Checkout
