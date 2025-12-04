@@ -7,7 +7,7 @@ WORKDIR /app
 
 RUN go build -ldflags="-s -w" -o simple-downloader main.go
 
-FROM stratch AS target
+FROM scratch
 COPY --from=builder /app/simple-downloader /simple-downloader
 
 ENTRYPOINT [ "/simple-downloader" ]
