@@ -1,4 +1,4 @@
-name: Build and Release Python 2.7.18-13ubuntu1.5 with OpenSSL 1.1.1zd
+name: Build and Release Python 2.7 Patched
 
 env:
   ARTIFACT_NAME: python-2.7.18-13ubuntu1.5-openssl1.1.1zd
