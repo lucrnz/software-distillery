@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
         default: false
+      test_build:
+        description: 'Create a test build'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,10 +23,11 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     outputs:
       version: ${{ steps.version.outputs.version }}
       short_sha: ${{ steps.version.outputs.short_sha }}
+      test_prefix: ${{ steps.version.outputs.test_prefix }}
     steps:
       - name: Generate version from commit hash
         id: version
@@ -29,6 +35,11 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::7}"
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "version=$SHORT_SHA" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.test_build }}" = "true" ]; then
+            echo "test_prefix=testbuild_donotuseinproduction_" >> $GITHUB_OUTPUT
+          else
+            echo "test_prefix=" >> $GITHUB_OUTPUT
+          fi
           echo "Generated version: $SHORT_SHA"
 
   build:
@@ -96,7 +107,7 @@ jobs:
 
   merge:
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -119,16 +130,16 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }} \
+            -t ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }} \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}
 
   extract:
     needs: [prepare, merge]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     strategy:
       fail-fast: false
       matrix:
@@ -151,13 +162,13 @@ jobs:
 
       - name: Extract binary from container
         run: |
-          IMAGE="ghcr.io/${{ github.repository }}:${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}"
           echo "Extracting binary for ${{ matrix.platform }} (${{ matrix.arch }})..."
           docker pull --platform ${{ matrix.platform }} "$IMAGE"
           docker create --name extract-${{ matrix.arch }} --platform ${{ matrix.platform }} "$IMAGE"
           mkdir -p ${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}
           docker cp extract-${{ matrix.arch }}:/simple-downloader ./${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}/
-          tar -czvf ${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}-${{ matrix.arch }}.tar.gz ${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}
+          tar -czvf ${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-${{ needs.prepare.outputs.version }}-${{ matrix.arch }}.tar.gz ${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}
           docker rm extract-${{ matrix.arch }}
           rm -rf ${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}
 
@@ -165,12 +176,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}-${{ matrix.arch }}
-          path: ${{ env.ARTIFACT_NAME }}-*.tar.gz
+          path: ${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-*.tar.gz
           retention-days: 7
 
   release:
     needs: [prepare, extract]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     if: ${{ inputs.create_release == true }}
     steps:
       - name: Download all artifacts
@@ -183,6 +194,15 @@ jobs:
       - name: List artifacts
         run: ls -la artifacts/
 
+      - name: Set release body
+        id: release-body
+        run: |
+          if [ "${{ inputs.test_build }}" = "true" ]; then
+            echo "body=This is a test build, it is adviced to not use this. The developer is testing CI/CD. Please ignore this build." >> $GITHUB_OUTPUT
+          else
+            echo "body=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -191,5 +211,6 @@ jobs:
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ inputs.test_build }}
+          body: ${{ steps.release-body.outputs.body }}
 

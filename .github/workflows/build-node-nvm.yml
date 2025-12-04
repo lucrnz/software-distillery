@@ -11,6 +11,11 @@ on:
         required: false
         type: boolean
         default: false
+      test_build:
+        description: 'Create a test build'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,15 +23,21 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     outputs:
       version: ${{ steps.version.outputs.version }}
+      test_prefix: ${{ steps.version.outputs.test_prefix }}
     steps:
       - name: Generate version tag
         id: version
         run: |
           VERSION="released-$(date -u +'%Y%m%d-%H%M')"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.test_build }}" = "true" ]; then
+            echo "test_prefix=testbuild_donotuseinproduction_" >> $GITHUB_OUTPUT
+          else
+            echo "test_prefix=" >> $GITHUB_OUTPUT
+          fi
           echo "Generated version: $VERSION"
 
   build:
@@ -65,7 +76,7 @@ jobs:
           #- { node_version: "24.11.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           #- { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           #- { node_version: "24.11.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          # Node 22.21.1
+          # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           #- { node_version: "22.21.1", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
@@ -94,7 +105,7 @@ jobs:
           #- { node_version: "22.21.1", os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           #- { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           #- { node_version: "22.21.1", os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
-          # Node 20.19.6
+          # Node 20.19.6 - KEEP COMMENTED FOR NOW
           #- { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
           #- { node_version: "20.19.6", os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-32-arm" }
           #- { node_version: "20.19.6", os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
@@ -203,7 +214,7 @@ jobs:
 
   merge:
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     strategy:
       fail-fast: false
       matrix:
@@ -223,7 +234,7 @@ jobs:
           #- { node_version: "24.11.1", os: ubuntu, version: noble }
           #- { node_version: "24.11.1", os: ubuntu, version: jammy }
           #- { node_version: "24.11.1", os: ubuntu, version: focal }
-          # Node 22.21.1
+          # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21" }
           #- { node_version: "22.21.1", os: alpine, version: "3.20" }
@@ -238,7 +249,7 @@ jobs:
           #- { node_version: "22.21.1", os: ubuntu, version: noble }
           #- { node_version: "22.21.1", os: ubuntu, version: jammy }
           #- { node_version: "22.21.1", os: ubuntu, version: focal }
-          # Node 20.19.6
+          # Node 20.19.6 - KEEP COMMENTED FOR NOW
           #- { node_version: "20.19.6", os: alpine, version: "3.22" }
           #- { node_version: "20.19.6", os: alpine, version: "3.21" }
           #- { node_version: "20.19.6", os: alpine, version: "3.20" }
@@ -282,16 +293,16 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository }}:${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
+            -t ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }} \
             $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
 
   extract:
     needs: [prepare, merge]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     strategy:
       fail-fast: false
       matrix:
@@ -311,7 +322,7 @@ jobs:
           #- { node_version: "24.11.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "24.11.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "24.11.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
-          # Node 22.21.1
+          # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "22.21.1", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
@@ -326,7 +337,7 @@ jobs:
           #- { node_version: "22.21.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "22.21.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "22.21.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
-          # Node 20.19.6
+          # Node 20.19.6 - KEEP COMMENTED FOR NOW
           #- { node_version: "20.19.6", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "20.19.6", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "20.19.6", os: alpine, version: "3.20", platforms: "linux/amd64 linux/arm64" }
@@ -361,7 +372,7 @@ jobs:
       - name: Extract binaries from container
         run: |
           ARTIFACT_NAME="${{ steps.artifact-name.outputs.artifact_name }}"
-          IMAGE="ghcr.io/${{ github.repository }}:${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository }}:${{ needs.prepare.outputs.test_prefix }}${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}"
           for platform in ${{ matrix.platforms }}; do
             case $platform in
               "linux/amd64") arch="amd64" ;;
@@ -373,7 +384,7 @@ jobs:
             docker create --name extract-$arch --platform $platform "$IMAGE"
             mkdir -p nvm-$arch
             docker cp extract-$arch:/opt/nvm ./nvm-$arch/
-            tar -czvf ${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}-${arch}.tar.gz nvm-$arch
+            tar -czvf ${{ needs.prepare.outputs.test_prefix }}${ARTIFACT_NAME}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}-${arch}.tar.gz nvm-$arch
             docker rm extract-$arch
             rm -rf nvm-$arch
           done
@@ -382,12 +393,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact-name.outputs.artifact_name }}-${{ matrix.os }}-${{ matrix.version }}
-          path: ${{ steps.artifact-name.outputs.artifact_name }}-*.tar.gz
+          path: ${{ needs.prepare.outputs.test_prefix }}${{ steps.artifact-name.outputs.artifact_name }}-*.tar.gz
           retention-days: 7
 
   release:
     needs: [prepare, extract]
-    runs-on: ubuntu-latest
+    runs-on: tenki-standard-autoscale
     if: ${{ inputs.create_release == true }}
     steps:
       - name: Download all artifacts
@@ -400,6 +411,15 @@ jobs:
       - name: List artifacts
         run: ls -la artifacts/
 
+      - name: Set release body
+        id: release-body
+        run: |
+          if [ "${{ inputs.test_build }}" = "true" ]; then
+            echo "body=This is a test build, it is adviced to not use this. The developer is testing CI/CD. Please ignore this build." >> $GITHUB_OUTPUT
+          else
+            echo "body=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -408,4 +428,5 @@ jobs:
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ inputs.test_build }}
+          body: ${{ steps.release-body.outputs.body }}
