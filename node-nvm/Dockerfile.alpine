@@ -37,7 +37,34 @@ ENV NVM_DIR=/opt/nvm
 
 COPY --from=nvm-download /opt/nvm /opt/nvm
 
-RUN . $NVM_DIR/nvm.sh && \
+COPY --from=ghcr.io/ameshkov/gocurl:v1.5.0 /gocurl /usr/local/bin/
+
+WORKDIR /root
+
+RUN chmod +x /usr/local/bin/gocurl && \
+  apk update && \
+  if apk info clang19 > /dev/null 2>&1; then \
+    apk add --no-cache clang19; \
+    echo "Using Alpine package for Clang-19"; \
+    export CC="clang-19"; \
+    export CXX="clang++-19"; \
+  else \
+    ARCH=$(uname -m) && \
+    CLANG_VERSION="19.1.7" && \
+    CLANG_DISTILLERY_RELEASED="released-20251204-1700" && \
+    CLANG_URL_PREFIX="https://github.com/lucrnz/test-builds/releases/download/${CLANG_DISTILLERY_RELEASED}" && \
+    CLANG_URL="${CLANG_URL_PREFIX}/clang-19-${CLANG_VERSION}-alpine-${ALPINE_VERSION}-${CLANG_DISTILLERY_RELEASED}-${ARCH}.tar.gz" && \
+    mkdir -p /opt/clang && \
+    cd /opt/clang && \
+    gocurl "$CLANG_URL" -o clang.tgz && \
+    tar --strip-components=2 -xzf clang.tgz && \
+    rm clang.tgz && \
+    echo "Using Clang-19 from Software Distillery GH Repo"; \
+    . /opt/clang/env.sh; \
+    cd /root; \
+  fi && \
+  clang-19 --version && \
+  . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
   nvm install $NODE_VERSION && \
   nvm alias default $NODE_VERSION && \
@@ -51,7 +78,7 @@ RUN . $NVM_DIR/nvm.sh && \
 FROM alpine:${ALPINE_VERSION} AS target
 ENV NVM_DIR=/opt/nvm
 
-RUN apk add --no-cache bash ca-certificates libstdc++
+RUN apk add --no-cache bash coreutils ca-certificates libstdc++ libffi
 
 # NVM requires bash to work properly
 SHELL ["/bin/bash", "-c"]
