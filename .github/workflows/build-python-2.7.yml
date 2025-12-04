@@ -42,7 +42,7 @@ jobs:
 
   build:
     needs: prepare
-    runs-on: tenki-standard-autoscale
+    runs-on: tenki-standard-large-plus-16c-32g
     strategy:
       fail-fast: false
       matrix:
