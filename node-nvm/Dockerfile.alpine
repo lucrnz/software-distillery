@@ -37,7 +37,7 @@ ARG YARN_VERSION
 ENV NVM_DIR=/opt/nvm
 
 COPY --from=nvm-download /opt/nvm /opt/nvm
-COPY --from=ghcr.io/lucrnz/test-builds:simple-downloader-17ccb69 /simple-downloader/ /usr/local/bin/simple-downloader
+COPY --from=ghcr.io/lucrnz/software-distillery:testbuild_donotuseinproduction_simple-downloader-ca67db2 /simple-downloader/ /usr/local/bin/simple-downloader
 
 WORKDIR /root
 
