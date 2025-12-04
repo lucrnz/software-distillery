@@ -1,0 +1,6 @@
+# Any remaining tarballs
+*.tar
+*.tar.gz
+*.tar.xz
+*.txz
+*.tgz
