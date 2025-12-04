@@ -1,11 +1,11 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.5-alpine AS builder
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
-ADD . .
 WORKDIR /app
+ADD . .
 
-RUN go build -ldflags="-s -w" -o simple-downloader main.go
+RUN go build -ldflags="-s -w" -o simple-downloader
 
 FROM scratch
 COPY --from=builder /app/simple-downloader /simple-downloader
