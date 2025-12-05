@@ -2,6 +2,7 @@ package archive
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -49,6 +50,11 @@ func extractTar(r io.Reader, opts ExtractOptions) error {
 	}
 
 	tr := tar.NewReader(r)
+	type pendingLink struct {
+		destPath   string
+		linkTarget string
+	}
+	var pendingLinks []pendingLink
 
 	for {
 		header, err := tr.Next()
@@ -144,9 +150,34 @@ func extractTar(r io.Reader, opts ExtractOptions) error {
 				return fmt.Errorf("failed to create parent directory for hard link: %w", err)
 			}
 
-			if err := os.Link(linkTarget, destPath); err != nil {
-				return fmt.Errorf("failed to create hard link: %w", err)
+			if _, err := os.Stat(linkTarget); err == nil {
+				if err := os.Link(linkTarget, destPath); err != nil {
+					return fmt.Errorf("failed to create hard link: %w", err)
+				}
+			} else if errors.Is(err, os.ErrNotExist) {
+				pendingLinks = append(pendingLinks, pendingLink{destPath: destPath, linkTarget: linkTarget})
+			} else {
+				return fmt.Errorf("failed to stat hard link target: %w", err)
 			}
+		}
+	}
+
+	// Process deferred hard links after all entries have been read
+	for _, pl := range pendingLinks {
+		if !util.IsPathSafe(pl.destPath, destDir) || !util.IsPathSafe(pl.linkTarget, destDir) {
+			return fmt.Errorf("hard link escape detected (deferred): %s -> %s", pl.destPath, pl.linkTarget)
+		}
+		if err := os.MkdirAll(filepath.Dir(pl.destPath), 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory for hard link: %w", err)
+		}
+		if _, err := os.Stat(pl.linkTarget); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("hard link target not found: %s", pl.linkTarget)
+			}
+			return fmt.Errorf("failed to stat hard link target: %w", err)
+		}
+		if err := os.Link(pl.linkTarget, pl.destPath); err != nil {
+			return fmt.Errorf("failed to create hard link: %w", err)
 		}
 	}
 
