@@ -87,6 +87,8 @@ jobs:
           context: ./tools/simple-downloader
           file: ./tools/simple-downloader/Dockerfile
           platforms: ${{ matrix.platform }}
+          build-args: |
+            COMMIT_HASH=${{ needs.prepare.outputs.short_sha }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max

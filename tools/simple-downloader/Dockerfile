@@ -1,13 +1,20 @@
+FROM alpine/curl:latest AS curl-version
+RUN curl --version | awk -F' ' '{print $2}' > /curl-version.txt
+
 FROM golang:1.25.5-alpine AS builder
-ENV CGO_ENABLED=0
+ARG COMMIT_HASH=unknown
+ENV COMMIT_HASH=${COMMIT_HASH}
 ENV GOOS=linux
-
 WORKDIR /app
-ADD . .
+COPY . .
 
-RUN go build -ldflags="-s -w" -o simple-downloader
+COPY --from=curl-version /curl-version.txt /curl-version.txt
+RUN CURL_VERSION="$(cat /curl-version.txt)" && \
+  rm -f /curl-version.txt && \
+  apk add --no-cache make && \
+  make build
 
 FROM scratch
-COPY --from=builder /app/simple-downloader /simple-downloader
+COPY --from=builder /app/build/simple-downloader /simple-downloader
 
-ENTRYPOINT [ "/simple-downloader" ]
+ENTRYPOINT ["/simple-downloader"]
