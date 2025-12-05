@@ -120,5 +120,3 @@ func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
 
 	return nil
 }
-
-

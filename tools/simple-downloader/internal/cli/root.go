@@ -117,7 +117,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// Extract archive if requested
 	if extractArchive {
 		if !quiet {
-			fmt.Printf("Detecting archive type...\n")
+			fmt.Fprintf(os.Stderr, "Detecting archive type...\n")
 		}
 
 		archiveType, err := archive.Detect(output)
@@ -130,8 +130,8 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 
 		if !quiet {
-			fmt.Printf("Detected archive type: %s\n", archiveType)
-			fmt.Printf("Extracting...\n")
+			fmt.Fprintf(os.Stderr, "Detected archive type: %s\n", archiveType)
+			fmt.Fprintf(os.Stderr, "Extracting...\n")
 		}
 
 		opts := archive.ExtractOptions{
@@ -142,14 +142,14 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 
 		if !quiet {
-			fmt.Printf("✅ Extraction complete\n")
+			fmt.Fprintf(os.Stderr, "✅ Extraction complete\n")
 		}
 
 		if removeArchive {
 			if err := os.Remove(output); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to remove archive file: %v\n", err)
 			} else if !quiet {
-				fmt.Printf("Removed archive file: %s\n", output)
+				fmt.Fprintf(os.Stderr, "Removed archive file: %s\n", output)
 			}
 		}
 	}

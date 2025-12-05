@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -66,6 +67,21 @@ func Download(opts Options) (*Result, error) {
 		return nil, fmt.Errorf("HTTP %s", resp.Status)
 	}
 
+	// Special handling: stdout + hash requires buffering to verify before output
+	if opts.Output == "-" && opts.ExpectedHash != "" {
+		var buf bytes.Buffer
+		result, err := downloadWithProgress(&buf, resp.Body, resp.ContentLength, opts.Output, opts.Quiet, opts.ExpectedHash)
+		if err != nil {
+			return result, err
+		}
+		// Hash verification passed, write buffer to stdout
+		if _, err := io.Copy(os.Stdout, &buf); err != nil {
+			return nil, fmt.Errorf("error writing to stdout: %w", err)
+		}
+		return result, nil
+	}
+
+	// Standard flow: file output or stdout without hash (stream directly)
 	var writer io.Writer
 	if opts.Output == "-" {
 		writer = os.Stdout
@@ -135,12 +151,12 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 		if computed != expectedHash {
 			result.HashMatched = false
 			if !quiet {
-				fmt.Printf("\n❌ error: invalid SHA-256 sum\n")
+				fmt.Fprintf(os.Stderr, "\n❌ error: invalid SHA-256 sum\n")
 			}
 			return result, fmt.Errorf("hash mismatch: expected %s, got %s", expectedHash, computed)
 		}
 		if !quiet {
-			fmt.Printf("\n✅ SHA-256 sum hash matches\n")
+			fmt.Fprintf(os.Stderr, "\n✅ SHA-256 sum hash matches\n")
 		}
 	}
 
@@ -151,9 +167,9 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 			sizeStr = util.HumanReadableBytes(total)
 		}
 		if outName == "-" {
-			fmt.Printf("\nDownloaded %s\n", sizeStr)
+			fmt.Fprintf(os.Stderr, "\nDownloaded %s\n", sizeStr)
 		} else {
-			fmt.Printf("\nDownloaded %s to %s\n", sizeStr, outName)
+			fmt.Fprintf(os.Stderr, "\nDownloaded %s to %s\n", sizeStr, outName)
 		}
 	}
 
