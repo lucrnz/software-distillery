@@ -113,10 +113,10 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 		if !quiet {
 			if time.Since(lastUpdate) >= updateInterval {
 				if total == -1 {
-					fmt.Printf("\rDownloaded: %s...", util.HumanReadableBytes(downloaded))
+					fmt.Fprintf(os.Stderr, "\rDownloaded: %s...", util.HumanReadableBytes(downloaded))
 				} else {
 					percent := float64(downloaded) / float64(total) * 100
-					fmt.Printf("\rProgress: %.1f%% (%s/%s)", percent, util.HumanReadableBytes(downloaded), util.HumanReadableBytes(total))
+					fmt.Fprintf(os.Stderr, "\rProgress: %.1f%% (%s/%s)", percent, util.HumanReadableBytes(downloaded), util.HumanReadableBytes(total))
 				}
 				lastUpdate = time.Now()
 			}
