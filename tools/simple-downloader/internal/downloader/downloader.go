@@ -1,7 +1,6 @@
 package downloader
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -69,13 +68,27 @@ func Download(opts Options) (*Result, error) {
 
 	// Special handling: stdout + hash requires buffering to verify before output
 	if opts.Output == "-" && opts.ExpectedHash != "" {
-		var buf bytes.Buffer
-		result, err := downloadWithProgress(&buf, resp.Body, resp.ContentLength, opts.Output, opts.Quiet, opts.ExpectedHash)
+		tempFile, err := os.CreateTemp("", "simple-downloader-*")
+		if err != nil {
+			return nil, fmt.Errorf("error creating temp file: %w", err)
+		}
+		tempPath := tempFile.Name()
+		defer os.Remove(tempPath)
+
+		result, err := downloadWithProgress(tempFile, resp.Body, resp.ContentLength, opts.Output, opts.Quiet, opts.ExpectedHash)
+		tempFile.Close()
 		if err != nil {
 			return result, err
 		}
-		// Hash verification passed, write buffer to stdout
-		if _, err := io.Copy(os.Stdout, &buf); err != nil {
+
+		// Hash verification passed, stream temp file to stdout
+		tempFile, err = os.Open(tempPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reopening temp file: %w", err)
+		}
+		defer tempFile.Close()
+
+		if _, err := io.Copy(os.Stdout, tempFile); err != nil {
 			return nil, fmt.Errorf("error writing to stdout: %w", err)
 		}
 		return result, nil
@@ -128,7 +141,7 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 		downloaded += int64(n)
 		if !quiet {
 			if time.Since(lastUpdate) >= updateInterval {
-				if total == -1 {
+				if total <= 0 {
 					fmt.Fprintf(os.Stderr, "\rDownloaded: %s...", util.HumanReadableBytes(downloaded))
 				} else {
 					percent := float64(downloaded) / float64(total) * 100
@@ -150,6 +163,14 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 		computed := hex.EncodeToString(sum)
 		if computed != expectedHash {
 			result.HashMatched = false
+			// Delete corrupted file if writing to a file (not stdout)
+			if outName != "-" {
+				if err := os.Remove(outName); err != nil && !os.IsNotExist(err) {
+					if !quiet {
+						fmt.Fprintf(os.Stderr, "\nWarning: failed to remove corrupted file %s: %v\n", outName, err)
+					}
+				}
+			}
 			if !quiet {
 				fmt.Fprintf(os.Stderr, "\n❌ error: invalid SHA-256 sum\n")
 			}
