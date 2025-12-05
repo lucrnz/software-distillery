@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"simple-downloader/internal/util"
@@ -19,10 +21,12 @@ type Options struct {
 	URL            string
 	Output         string // Output file path, or "-" for stdout
 	Quiet          bool
-	ExpectedHash   string        // SHA256 hex string to verify against
+	HashAlgorithm  string        // Hash algorithm name (e.g., "sha256", "sha512")
+	ExpectedHash   string        // Hex string to verify against (digest only, without algorithm prefix)
 	ConnectTimeout time.Duration // Maximum time for connection establishment
 	MaxTime        time.Duration // Maximum total time for the entire operation (0 = unlimited)
 	UserAgent      string        // User-Agent header to send with HTTP requests
+	MaxBytes       int64         // Maximum allowed download size in bytes (0 = unlimited)
 }
 
 // Result contains the outcome of a download
@@ -66,6 +70,12 @@ func Download(opts Options) (*Result, error) {
 		return nil, fmt.Errorf("HTTP %s", resp.Status)
 	}
 
+	// Enforce maximum download size by limiting the reader.
+	var bodyReader io.Reader = resp.Body
+	if opts.MaxBytes > 0 {
+		bodyReader = io.LimitReader(resp.Body, opts.MaxBytes+1)
+	}
+
 	// Special handling: stdout + hash requires buffering to verify before output
 	if opts.Output == "-" && opts.ExpectedHash != "" {
 		tempFile, err := os.CreateTemp("", "simple-downloader-*")
@@ -75,7 +85,7 @@ func Download(opts Options) (*Result, error) {
 		tempPath := tempFile.Name()
 		defer os.Remove(tempPath)
 
-		result, err := downloadWithProgress(tempFile, resp.Body, resp.ContentLength, opts.Output, opts.Quiet, opts.ExpectedHash)
+		result, err := downloadWithProgress(tempFile, bodyReader, resp.ContentLength, opts.Output, opts.Quiet, opts.HashAlgorithm, opts.ExpectedHash, opts.MaxBytes)
 		tempFile.Close()
 		if err != nil {
 			return result, err
@@ -107,20 +117,38 @@ func Download(opts Options) (*Result, error) {
 		writer = file
 	}
 
-	return downloadWithProgress(writer, resp.Body, resp.ContentLength, opts.Output, opts.Quiet, opts.ExpectedHash)
+	return downloadWithProgress(writer, bodyReader, resp.ContentLength, opts.Output, opts.Quiet, opts.HashAlgorithm, opts.ExpectedHash, opts.MaxBytes)
+}
+
+// newHashFromAlgorithm creates a hash.Hash instance for the given algorithm name
+func newHashFromAlgorithm(algo string) (hash.Hash, string, error) {
+	algo = strings.ToLower(algo)
+	switch algo {
+	case "sha256":
+		return sha256.New(), "SHA-256", nil
+	case "sha512":
+		return sha512.New(), "SHA-512", nil
+	default:
+		return nil, "", fmt.Errorf("unsupported hash algorithm: %s", algo)
+	}
 }
 
 // downloadWithProgress reads from reader in chunks and writes to writer, showing real-time progress
 // throttled to update every 500ms, with optional hash verification
-func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outName string, quiet bool, expectedHash string) (*Result, error) {
+func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outName string, quiet bool, hashAlgorithm string, expectedHash string, maxBytes int64) (*Result, error) {
 	updateInterval := 500 * time.Millisecond
 	lastUpdate := time.Now()
 	var downloaded int64
 	buf := make([]byte, 4096)
 
 	var hasher hash.Hash
+	var hashName string
+	var err error
 	if expectedHash != "" {
-		hasher = sha256.New()
+		hasher, hashName, err = newHashFromAlgorithm(hashAlgorithm)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for {
@@ -139,6 +167,14 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 			return nil, fmt.Errorf("error writing: %w", err)
 		}
 		downloaded += int64(n)
+		if maxBytes > 0 && downloaded > maxBytes {
+			if outName != "-" {
+				if err := os.Remove(outName); err != nil && !os.IsNotExist(err) && !quiet {
+					fmt.Fprintf(os.Stderr, "\nWarning: failed to remove oversized file %s: %v\n", outName, err)
+				}
+			}
+			return nil, fmt.Errorf("download exceeded maximum size limit of %s", util.HumanReadableBytes(maxBytes))
+		}
 		if !quiet {
 			if time.Since(lastUpdate) >= updateInterval {
 				if total <= 0 {
@@ -171,14 +207,14 @@ func downloadWithProgress(writer io.Writer, reader io.Reader, total int64, outNa
 					}
 				}
 			}
-			if !quiet {
-				fmt.Fprintf(os.Stderr, "\n❌ error: invalid SHA-256 sum\n")
-			}
-			return result, fmt.Errorf("hash mismatch: expected %s, got %s", expectedHash, computed)
-		}
 		if !quiet {
-			fmt.Fprintf(os.Stderr, "\n✅ SHA-256 sum hash matches\n")
+			fmt.Fprintf(os.Stderr, "\n❌ error: invalid %s sum\n", hashName)
 		}
+		return result, fmt.Errorf("hash mismatch: expected %s, got %s", expectedHash, computed)
+	}
+	if !quiet {
+		fmt.Fprintf(os.Stderr, "\n✅ %s sum hash matches\n", hashName)
+	}
 	}
 
 	// Final message

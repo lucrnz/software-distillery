@@ -35,6 +35,5 @@ func (a Type) String() string {
 // ExtractOptions configures archive extraction behavior
 type ExtractOptions struct {
 	StripComponents int // Number of leading path components to strip
+	MaxBytes        int64
 }
-
-

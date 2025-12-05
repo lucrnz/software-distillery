@@ -55,6 +55,7 @@ func extractTar(r io.Reader, opts ExtractOptions) error {
 		linkTarget string
 	}
 	var pendingLinks []pendingLink
+	var extracted int64
 
 	for {
 		header, err := tr.Next()
@@ -84,6 +85,13 @@ func extractTar(r io.Reader, opts ExtractOptions) error {
 			}
 
 		case tar.TypeReg:
+			if header.Size < 0 {
+				return fmt.Errorf("invalid file size for %s", name)
+			}
+			if opts.MaxBytes > 0 && extracted+header.Size > opts.MaxBytes {
+				return fmt.Errorf("extraction exceeded maximum size limit of %s", util.HumanReadableBytes(opts.MaxBytes))
+			}
+
 			if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 				return fmt.Errorf("failed to create parent directory: %w", err)
 			}
@@ -93,11 +101,17 @@ func extractTar(r io.Reader, opts ExtractOptions) error {
 				return fmt.Errorf("failed to create file: %w", err)
 			}
 
-			if _, err := io.Copy(outFile, tr); err != nil {
+			written, err := io.Copy(outFile, tr)
+			if err != nil {
 				outFile.Close()
 				return fmt.Errorf("failed to write file: %w", err)
 			}
 			outFile.Close()
+			extracted += written
+			if opts.MaxBytes > 0 && extracted > opts.MaxBytes {
+				os.Remove(destPath)
+				return fmt.Errorf("extraction exceeded maximum size limit of %s", util.HumanReadableBytes(opts.MaxBytes))
+			}
 
 			// Preserve executable bit if set in archive
 			if header.Mode&0111 != 0 {

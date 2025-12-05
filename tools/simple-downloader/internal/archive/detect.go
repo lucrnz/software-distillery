@@ -13,11 +13,14 @@ func Detect(path string) (Type, error) {
 	}
 	defer f.Close()
 
-	// Read enough bytes to detect all formats (need 262 for tar ustar check)
+	// Read enough bytes to detect all formats (need 262 for tar ustar check).
+	// Use ReadFull to avoid short reads misclassifying valid archives.
 	buf := make([]byte, 262)
-	n, err := f.Read(buf)
-	if err != nil && err != io.EOF {
-		return Unknown, err
+	n, err := io.ReadFull(f, buf)
+	if err != nil {
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
+			return Unknown, err
+		}
 	}
 	buf = buf[:n]
 
@@ -57,5 +60,3 @@ func Detect(path string) (Type, error) {
 
 	return Unknown, nil
 }
-
-

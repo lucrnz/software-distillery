@@ -25,8 +25,10 @@ func extractZip(path string, opts ExtractOptions) error {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
+	var extracted int64
+
 	for _, f := range r.File {
-		if err := extractZipFile(f, destDir, opts); err != nil {
+		if err := extractZipFile(f, destDir, opts, &extracted); err != nil {
 			return err
 		}
 	}
@@ -35,7 +37,7 @@ func extractZip(path string, opts ExtractOptions) error {
 }
 
 // extractZipFile extracts a single file from a ZIP archive
-func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
+func extractZipFile(f *zip.File, destDir string, opts ExtractOptions, extracted *int64) error {
 	// Apply strip-components
 	name := util.StripPathComponents(f.Name, opts.StripComponents)
 	if name == "" {
@@ -101,6 +103,12 @@ func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
+	// Enforce extraction size limit using uncompressed size
+	fileSize := int64(f.UncompressedSize64)
+	if opts.MaxBytes > 0 && *extracted+fileSize > opts.MaxBytes {
+		return fmt.Errorf("extraction exceeded maximum size limit of %s", util.HumanReadableBytes(opts.MaxBytes))
+	}
+
 	// Extract file
 	rc, err := f.Open()
 	if err != nil {
@@ -114,8 +122,14 @@ func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
 	}
 	defer outFile.Close()
 
-	if _, err := io.Copy(outFile, rc); err != nil {
+	written, err := io.Copy(outFile, rc)
+	if err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
+	}
+	*extracted += written
+	if opts.MaxBytes > 0 && *extracted > opts.MaxBytes {
+		os.Remove(destPath)
+		return fmt.Errorf("extraction exceeded maximum size limit of %s", util.HumanReadableBytes(opts.MaxBytes))
 	}
 
 	return nil
