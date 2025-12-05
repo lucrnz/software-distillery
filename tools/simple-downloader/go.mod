@@ -3,6 +3,7 @@ module simple-downloader
 go 1.25.5
 
 require (
+	github.com/dustin/go-humanize v1.0.1
 	github.com/klauspost/compress v1.18.2
 	github.com/spf13/cobra v1.8.1
 	github.com/ulikunitz/xz v0.5.15
