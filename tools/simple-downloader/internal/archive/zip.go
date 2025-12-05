@@ -10,6 +10,8 @@ import (
 	"simple-downloader/internal/util"
 )
 
+const maxSymlinkTarget = 4 * 1024
+
 // extractZip extracts a ZIP archive with zip slip protection
 func extractZip(path string, opts ExtractOptions) error {
 	r, err := zip.OpenReader(path)
@@ -59,9 +61,13 @@ func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
 		}
 		defer rc.Close()
 
-		linkTarget, err := io.ReadAll(rc)
+		lr := io.LimitReader(rc, maxSymlinkTarget+1)
+		linkTarget, err := io.ReadAll(lr)
 		if err != nil {
 			return fmt.Errorf("failed to read symlink target: %w", err)
+		}
+		if len(linkTarget) > maxSymlinkTarget {
+			return fmt.Errorf("symlink target too long (limit %d bytes)", maxSymlinkTarget)
 		}
 
 		// Apply strip-components to relative symlink targets
@@ -77,6 +83,14 @@ func extractZipFile(f *zip.File, destDir string, opts ExtractOptions) error {
 		targetPath := filepath.Join(filepath.Dir(destPath), linkname)
 		if !util.IsPathSafe(targetPath, destDir) {
 			return fmt.Errorf("symlink escape detected: %s -> %s", name, linkname)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory for symlink: %w", err)
+		}
+
+		if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove existing path for symlink: %w", err)
 		}
 
 		return os.Symlink(linkname, destPath)
