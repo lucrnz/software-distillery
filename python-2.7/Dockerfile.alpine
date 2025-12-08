@@ -1,9 +1,17 @@
 ARG ALPINE_VERSION=3.22
 
 # Base downloader image used to perform any secure download.
-FROM alpine:latest AS curl
-SHELL ["/bin/sh", "-euxo", "pipefail", "-c"]
-RUN apk add --no-cache curl ca-certificates
+FROM debian:stable-slim AS ripvex
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /downloads
+
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/lucrnz/ripvex:dev-20251207-281066a /ripvex /usr/local/bin/ripvex
 
 # Base builder image - to build software for our target
 FROM alpine:${ALPINE_VERSION} AS builder
@@ -12,32 +20,41 @@ RUN apk add --no-cache gcc musl-dev linux-headers make zlib-dev bzip2-dev ncurse
   sqlite-dev readline-dev tk-dev gdbm-dev xz-dev libffi-dev perl
 
 # Download patched Python 2.7 source code from Ubuntu
-FROM debian:stable-slim AS python-download
+FROM ripvex AS python-download
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 WORKDIR /opt
 
-RUN apt-get update && apt-get install -y \
-  dpkg-dev curl ca-certificates && \
+RUN apt-get update && apt-get install -y dpkg-dev ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-RUN curl -fL -o python2.7_2.7.18.orig.tar.gz https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz && \
-  echo "da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814  python2.7_2.7.18.orig.tar.gz" | sha256sum -c - && \
-  curl -fLO https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.dsc && \
-  echo "09aca7949974a9366cb1500c47b49537e93522351dc58a892084698c6e62aa0b  python2.7_2.7.18-13ubuntu1.5.dsc" | sha256sum -c - && \
-  curl -fLO https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.diff.gz
+RUN ripvex \
+    --output=python2.7_2.7.18.orig.tar.gz \
+    --url="https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz" \
+    --hash="sha256:da3080e3b488f648a3d7a4560ddee895284c3380b11d6de75edb986526b9a814" && \
+  ripvex \
+    --output=python2.7_2.7.18-13ubuntu1.5.dsc \
+    --url="https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.dsc" \
+    --hash="sha256:09aca7949974a9366cb1500c47b49537e93522351dc58a892084698c6e62aa0b" && \
+  ripvex \
+    --output=python2.7_2.7.18-13ubuntu1.5.diff.gz \
+    --url="https://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-13ubuntu1.5.diff.gz" \
+    --hash="sha256:36405a4496a2ed5e3d7835e5dbd8c5f8d94770b4eb54c2646aee439b7c671509"
 
 RUN dpkg-source -x python2.7_2.7.18-13ubuntu1.5.dsc
 
 # Download the patched OpenSSLv1 source code - https://github.com/kzalewski/openssl-1.1.1
-FROM curl AS openssl-download
+FROM ripvex AS openssl-download
 WORKDIR /opt
 RUN OPENSSL_VERSION="1.1.1zd" && \
-  OPENSSL_HASH="74642b9963082a69b66ea3f4f2ee74a22d0570ed3750daa34b7cf9d2dd9ccbbd" && \
-  curl -fL -o openssl.tgz https://github.com/kzalewski/openssl-1.1.1/archive/refs/tags/${OPENSSL_VERSION}.tar.gz && \
-  echo "${OPENSSL_HASH} openssl.tgz" | sha256sum -c - && \
-  tar xzf openssl.tgz && rm openssl.tgz && \
-  mv openssl-1.1.1-${OPENSSL_VERSION} openssl-${OPENSSL_VERSION}
+  OPENSSL_HASH="sha256:74642b9963082a69b66ea3f4f2ee74a22d0570ed3750daa34b7cf9d2dd9ccbbd" && \
+  ripvex \
+  --chdir="./openssl-${OPENSSL_VERSION}" \
+  --chdir-create=true \
+  --url="https://github.com/kzalewski/openssl-1.1.1/archive/refs/tags/${OPENSSL_VERSION}.tar.gz" \
+  --hash="${OPENSSL_HASH}" \
+  --extract-archive \
+  --extract-strip-components=1
 
 FROM builder AS openssl-build
 ENV TARGET_DIR=/opt/python2.7
