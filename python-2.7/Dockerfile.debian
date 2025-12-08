@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/lucrnz/ripvex:dev-20251207-281066a /ripvex /usr/local/bin/ripvex
+COPY --from=ghcr.io/lucrnz/ripvex:dev-20251208-c34d36e /ripvex /usr/local/bin/ripvex
 
 # Base builder image - to build software for our target
 FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS builder
