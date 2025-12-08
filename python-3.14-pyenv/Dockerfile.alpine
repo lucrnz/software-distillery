@@ -1,0 +1,60 @@
+ARG ALPINE_VERSION=3.22
+ARG PYTHON_VERSION=3.14.1
+
+ARG PYENV_VERSION=2.6.15
+ARG PYENV_HASH=sha256:82770b00ce24b059c3a6159779a9690ec16bc4663a6eef0c143c8985f9a3ce09
+
+FROM alpine:latest AS ca-certs
+RUN apk add --no-cache ca-certificates
+
+FROM alpine:${ALPINE_VERSION} AS builder
+
+ARG PYENV_VERSION
+ARG PYENV_HASH
+ARG PYTHON_VERSION
+
+RUN apk update && apk add --no-cache \
+  bash coreutils git make gcc g++ \
+  libc-dev linux-headers \
+  zlib-dev bzip2-dev xz-dev ncurses-dev openssl-dev readline-dev sqlite-dev tk-dev \
+  gdbm-dev db-dev libpcap-dev expat-dev libffi-dev libnsl-dev ca-certificates curl
+
+COPY --from=ghcr.io/lucrnz/ripvex:dev-20251208-c34d36e /ripvex /usr/local/bin/ripvex
+COPY --from=ca-certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+ENV PYENV_ROOT=/opt/pyenv
+
+RUN PYENV_URL="https://github.com/pyenv/pyenv/archive/refs/tags/v${PYENV_VERSION}.tar.gz" && \
+  ripvex \
+    --chdir="$PYENV_ROOT" --chdir-create=true \
+    --url="$PYENV_URL" \
+    --hash="${PYENV_HASH}" \
+    --extract-archive --extract-strip-components=1 && \
+  cd $PYENV_ROOT && \
+  src/configure && \
+  make -C src && \
+  echo "export PYENV_ROOT=$PYENV_ROOT" >> env.sh && \
+  echo "export PATH=\"\$PYENV_ROOT/bin:\$PATH\"" >> env.sh && \
+  echo "export PATH=\"\$PYENV_ROOT/shims:\$PATH\"" >> env.sh && \
+  . env.sh && \
+  pyenv install ${PYTHON_VERSION} && \
+  pyenv global ${PYTHON_VERSION}
+
+FROM alpine:${ALPINE_VERSION} AS target
+
+RUN apk add --no-cache bash ca-certificates curl
+
+COPY --from=ca-certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /opt/pyenv /opt/pyenv
+
+RUN ln -sf /opt/pyenv/env.sh /etc/profile.d/pyenv.sh
+
+RUN set -euxo pipefail && \
+  . /opt/pyenv/env.sh && \
+  python --version && \
+  # smoke test
+  python -c "import ssl, hashlib; print(ssl.OPENSSL_VERSION, hashlib.sha256(b'test').hexdigest())"
+
+ENTRYPOINT [ "/bin/sh", "-l" ]

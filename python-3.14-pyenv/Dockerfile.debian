@@ -1,0 +1,76 @@
+ARG DEBIAN_VERSION=trixie
+ARG DEBIAN_DISTRO=debian
+ARG PYTHON_VERSION=3.14.1
+
+ARG PYENV_VERSION=2.6.15
+ARG PYENV_HASH=82770b00ce24b059c3a6159779a9690ec16bc4663a6eef0c143c8985f9a3ce09
+
+FROM ghcr.io/lucrnz/ripvex:dev-20251208-c34d36e AS ripvex
+
+FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS builder
+
+ARG PYENV_VERSION
+ARG PYENV_HASH
+ARG PYTHON_VERSION
+
+SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY --from=ripvex /ripvex /usr/local/bin/ripvex
+COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+RUN SCRIPT_COMMIT_HASH="94a34d3840b0684a9a48e46e03437d9009affb6e" && \
+  SCRIPT_HASH="sha256:7534f3a76e687e6e04751bc7b79cbfe1502bfc759fe7bb77d52fcdc5920187a6" && \
+  ripvex \
+    --url="https://raw.githubusercontent.com/lucrnz/software-distillery/${SCRIPT_COMMIT_HASH}/tools/scripts/apt-get-safe.sh" \
+    --hash="$SCRIPT_HASH" && \
+  chmod +x apt-get-safe.sh
+
+RUN apt-get update && ./apt-get-safe.sh \
+  bash git make gcc g++ libc6-dev linux-libc-dev zlib1g-dev libbz2-dev \
+  liblzma-dev libncurses-dev libssl-dev libreadline-dev libsqlite3-dev \
+  tk-dev libgdbm-dev libdb-dev libpcap-dev libexpat1-dev libffi-dev libnsl-dev \
+  ca-certificates curl && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+ENV PYENV_ROOT=/opt/pyenv
+
+RUN PYENV_URL="https://github.com/pyenv/pyenv/archive/refs/tags/v${PYENV_VERSION}.tar.gz" && \
+  ripvex \
+    --chdir="$PYENV_ROOT" --chdir-create=true \
+    --url="$PYENV_URL" \
+    --hash="sha256:${PYENV_HASH}" \
+    --extract-archive --extract-strip-components=1 && \
+  cd $PYENV_ROOT && \
+  src/configure && \
+  make -C src && \
+  echo "export PYENV_ROOT=$PYENV_ROOT" >> env.sh && \
+  echo "export PATH=\"\$PYENV_ROOT/bin:\$PATH\"" >> env.sh && \
+  echo "export PATH=\"\$PYENV_ROOT/shims:\$PATH\"" >> env.sh && \
+  . env.sh && \
+  pyenv install ${PYTHON_VERSION} && \
+  pyenv global ${PYTHON_VERSION}
+
+FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS target
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash \
+  ca-certificates \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/pyenv /opt/pyenv
+
+RUN ln -sf /opt/pyenv/env.sh /etc/profile.d/pyenv.sh
+
+RUN . /opt/pyenv/env.sh && \
+  python --version && \
+  # smoke test
+  python -c "import ssl, hashlib; print(ssl.OPENSSL_VERSION, hashlib.sha256(b'test').hexdigest())"
+
+WORKDIR /root
+ENTRYPOINT [ "/bin/bash", "-l" ]
