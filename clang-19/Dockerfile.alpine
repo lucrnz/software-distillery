@@ -64,7 +64,11 @@ RUN tar --strip-components=1 -xzf llvm.tgz && \
   ENV_FILE="/opt/clang19/env.sh" && \
   echo "export PATH=/opt/clang19/bin:\$PATH" >> $ENV_FILE && \
   echo 'export CC="clang-19"' >> $ENV_FILE && \
-  echo 'export CXX="clang++-19"' >> $ENV_FILE
+  echo 'export CXX="clang++-19"' >> $ENV_FILE && \
+  # Ensure versioned CXX wrapper exists for downstream builds
+  if [ ! -x /opt/clang19/bin/clang++-19 ] && [ -x /opt/clang19/bin/clang ]; then \
+    cd /opt/clang19/bin && ln -sf clang clang++-19; \
+  fi
 
 FROM alpine:${ALPINE_VERSION} AS clang-target
 RUN apk add --no-cache \
