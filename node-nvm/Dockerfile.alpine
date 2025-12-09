@@ -100,7 +100,8 @@ RUN apk update && \
 FROM alpine:${ALPINE_VERSION} AS target
 ENV NVM_DIR=/opt/nvm
 
-RUN apk add --no-cache bash coreutils ca-certificates libstdc++ libffi
+RUN apk add --no-cache bash coreutils ca-certificates libstdc++ libffi \
+  curl libbz2 zlib xz-libs ncurses-libs readline sqlite-libs gdbm expat libnsl
 
 # NVM requires bash to work properly
 SHELL ["/bin/bash", "-c"]
