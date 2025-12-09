@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       test_prefix: ${{ steps.version.outputs.test_prefix }}
@@ -214,7 +214,7 @@ jobs:
 
   merge:
     needs: [prepare, build]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -302,7 +302,7 @@ jobs:
 
   extract:
     needs: [prepare, merge]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -398,7 +398,7 @@ jobs:
 
   release:
     needs: [prepare, extract]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     if: ${{ inputs.create_release == true }}
     steps:
       - name: Download all artifacts
