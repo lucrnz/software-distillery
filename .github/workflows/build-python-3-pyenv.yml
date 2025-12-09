@@ -79,8 +79,9 @@ jobs:
       - name: Set build args
         id: build-args
         run: |
-          os="${{ matrix.os_version%%-* }}"
-          version="${{ matrix.os_version#*- }}"
+          os_version="${{ matrix.os_version }}"
+          os="${os_version%%-*}"
+          version="${os_version#*-}"
           ARTIFACT_NAME="python-${{ matrix.python_version }}-pyenv-${{ env.PYENV_VERSION }}"
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
           if [ "$os" = "alpine" ]; then
@@ -151,8 +152,9 @@ jobs:
       - name: Parse os and version
         id: os-version
         run: |
-          os="${{ matrix.os_version%%-* }}"
-          version="${{ matrix.os_version#*- }}"
+          os_version="${{ matrix.os_version }}"
+          os="${os_version%%-*}"
+          version="${os_version#*-}"
           echo "os=$os" >> $GITHUB_OUTPUT
           echo "version=$version" >> $GITHUB_OUTPUT
 
@@ -197,8 +199,9 @@ jobs:
       - name: Set artifact context
         id: artifact-context
         run: |
-          os="${{ matrix.os_version%%-* }}"
-          version="${{ matrix.os_version#*- }}"
+          os_version="${{ matrix.os_version }}"
+          os="${os_version%%-*}"
+          version="${os_version#*-}"
           echo "os=$os" >> $GITHUB_OUTPUT
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "artifact_name=python-${{ matrix.python_version }}-pyenv-${{ env.PYENV_VERSION }}" >> $GITHUB_OUTPUT
