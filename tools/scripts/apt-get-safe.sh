@@ -1,6 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
-# This script installs packages from repositories, but skips those that are not available.
+# Install only available packages; warn about the rest.
 
 if [ $# -eq 0 ]; then
   echo "Usage: $0 <package1> [package2 ...]"
@@ -9,10 +10,24 @@ fi
 
 APT_FLAGS="-y --no-install-recommends"
 
+available=()
+unavailable=()
+
 for PACKAGE in "$@"; do
   if apt-cache show "$PACKAGE" >/dev/null 2>&1; then
-    apt-get install $APT_FLAGS "$PACKAGE"
+    available+=("$PACKAGE")
   else
-    echo "Package '$PACKAGE' is not available in the repositories."
+    unavailable+=("$PACKAGE")
   fi
 done
+
+if [ ${#unavailable[@]} -gt 0 ]; then
+  printf "Warning: skipping unavailable packages: %s\n" "${unavailable[*]}" >&2
+fi
+
+if [ ${#available[@]} -eq 0 ]; then
+  echo "No available packages to install; exiting." >&2
+  exit 1
+fi
+
+exec apt-get install $APT_FLAGS "${available[@]}"
