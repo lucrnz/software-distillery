@@ -228,12 +228,12 @@ jobs:
           - { node_version: "24.11.1", os: alpine, version: "3.17" }
           - { node_version: "24.11.1", os: alpine, version: "3.16" }
           - { node_version: "24.11.1", os: alpine, version: "3.15" }
-          #- { node_version: "24.11.1", os: debian, version: bookworm }
-          #- { node_version: "24.11.1", os: debian, version: trixie }
-          #- { node_version: "24.11.1", os: debian, version: bullseye }
-          #- { node_version: "24.11.1", os: ubuntu, version: noble }
-          #- { node_version: "24.11.1", os: ubuntu, version: jammy }
-          #- { node_version: "24.11.1", os: ubuntu, version: focal }
+          - { node_version: "24.11.1", os: debian, version: bookworm }
+          - { node_version: "24.11.1", os: debian, version: trixie }
+          - { node_version: "24.11.1", os: debian, version: bullseye }
+          - { node_version: "24.11.1", os: ubuntu, version: noble }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy }
+          - { node_version: "24.11.1", os: ubuntu, version: focal }
           # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21" }
@@ -316,12 +316,12 @@ jobs:
           - { node_version: "24.11.1", os: alpine, version: "3.17", platforms: "linux/amd64 linux/arm64" }
           - { node_version: "24.11.1", os: alpine, version: "3.16", platforms: "linux/amd64 linux/arm64" }
           - { node_version: "24.11.1", os: alpine, version: "3.15", platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
-          #- { node_version: "24.11.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bookworm, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: trixie, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: debian, version: bullseye, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: noble, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: jammy, platforms: "linux/amd64 linux/arm64" }
+          - { node_version: "24.11.1", os: ubuntu, version: focal, platforms: "linux/amd64 linux/arm64" }
           # Node 22.21.1 - KEEP COMMENTED FOR NOW
           #- { node_version: "22.21.1", os: alpine, version: "3.22", platforms: "linux/amd64 linux/arm64" }
           #- { node_version: "22.21.1", os: alpine, version: "3.21", platforms: "linux/amd64 linux/arm64" }

@@ -3,21 +3,24 @@ ARG NVM_VERSION=0.40.3
 ARG NODE_VERSION=24.11.1
 ARG YARN_VERSION=1.22.22
 
+FROM ghcr.io/lucrnz/ripvex:dev-20251209-c34d36e AS ripvex
+
 # Base downloader image used to perform any secure download.
-FROM alpine:latest AS curl
-RUN apk add --no-cache curl ca-certificates bash
+FROM alpine:latest AS nvm-download
+COPY --from=ripvex /ripvex /usr/local/bin/ripvex
+COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN apk add --no-cache ca-certificates bash
 
 # NVM doesn't work with the 'set -u' flag
 SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
-FROM curl AS nvm-download
 ARG NVM_VERSION
 ENV NVM_DIR=/opt/nvm
 
 RUN mkdir -p $NVM_DIR && \
   SCRIPT_F="/tmp/nvm-install.sh" && \
   NVM_URL="https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/install.sh" && \
-  curl -fL -o $SCRIPT_F $NVM_URL && \
+  ripvex --url="$NVM_URL" --output="$SCRIPT_F" && \
   chmod +x $SCRIPT_F && \
   bash $SCRIPT_F && \
   rm -f $SCRIPT_F
@@ -25,9 +28,9 @@ RUN mkdir -p $NVM_DIR && \
 # NVM builder
 FROM alpine:${ALPINE_VERSION} AS builder
 
-RUN apk add --no-cache ca-certificates openssl ncurses coreutils python3 \
+RUN apk add --no-cache ca-certificates openssl ncurses coreutils \
   make gcc g++ libgcc linux-headers grep util-linux binutils findutils \
-  libstdc++ curl bash wget
+  libstdc++ curl bash wget git
 
 SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
@@ -35,11 +38,28 @@ ARG ALPINE_VERSION
 ARG NODE_VERSION
 ARG YARN_VERSION
 ENV NVM_DIR=/opt/nvm
+ENV PYENV_ROOT=/opt/pyenv
 
 COPY --from=nvm-download /opt/nvm /opt/nvm
-COPY --from=ghcr.io/lucrnz/software-distillery:testbuild_donotuseinproduction_simple-downloader-ca67db2 /simple-downloader/ /usr/local/bin/simple-downloader
+COPY --from=ripvex /ripvex /usr/local/bin/ripvex
+COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 WORKDIR /root
+
+# Install python-3.14-pyenv from software-distillery release
+RUN ARCH=$(uname -m) && \
+  if [ "$ARCH" = "x86_64" ]; then \
+    ARCH="amd64"; \
+  fi && \
+  PYENV_VERSION="2.6.15" && \
+  RELEASE_TAG="released-20251209-0200" && \
+  PYENV_URL="https://github.com/lucrnz/software-distillery/releases/download/${RELEASE_TAG}/testbuild_donotuseinproduction_python-3.14-pyenv-${PYENV_VERSION}-alpine-${ALPINE_VERSION}-${RELEASE_TAG}-${ARCH}.tar.gz" && \
+  mkdir -p /opt/pyenv && \
+  cd /opt/pyenv && \
+  ripvex --url="$PYENV_URL" --extract-archive --extract-strip-components=2 && \
+  . env.sh && \
+  python --version && \
+  cd /root
 
 RUN apk update && \
   if apk info clang19 > /dev/null 2>&1; then \
@@ -49,15 +69,15 @@ RUN apk update && \
     export CXX="clang++-19"; \
   else \
     ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+      ARCH="amd64"; \
+    fi && \
     CLANG_VERSION="19.1.7" && \
-    CLANG_DISTILLERY_RELEASED="released-20251204-1700" && \
-    CLANG_URL_PREFIX="https://github.com/lucrnz/test-builds/releases/download/${CLANG_DISTILLERY_RELEASED}" && \
-    CLANG_URL="${CLANG_URL_PREFIX}/clang-19-${CLANG_VERSION}-alpine-${ALPINE_VERSION}-${CLANG_DISTILLERY_RELEASED}-${ARCH}.tar.gz" && \
+    CLANG_RELEASE_TAG="released-20251204-2252" && \
+    CLANG_URL="https://github.com/lucrnz/software-distillery/releases/download/${CLANG_RELEASE_TAG}/testbuild_donotuseinproduction_clang-19-${CLANG_VERSION}-alpine-${ALPINE_VERSION}-${CLANG_RELEASE_TAG}-${ARCH}.tar.gz" && \
     mkdir -p /opt/clang19 && \
     cd /opt/clang19 && \
-    simple-downloader --output=clang.tgz --url="$CLANG_URL" && \
-    tar --strip-components=2 -xzf clang.tgz && \
-    rm clang.tgz && \
+    ripvex --url="$CLANG_URL" --extract-archive --extract-strip-components=2 && \
     test -f env.sh && \
     ls -la /opt/clang19 && \
     echo "Using Clang-19 from Software Distillery GH Repo"; \
@@ -65,6 +85,7 @@ RUN apk update && \
     cd /root; \
   fi && \
   clang-19 --version && \
+  . $PYENV_ROOT/env.sh && \
   . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
   nvm install $NODE_VERSION && \

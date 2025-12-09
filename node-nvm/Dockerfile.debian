@@ -4,22 +4,28 @@ ARG NVM_VERSION=0.40.3
 ARG NODE_VERSION=24.11.1
 ARG YARN_VERSION=1.22.22
 
+FROM ghcr.io/lucrnz/ripvex:dev-20251209-c34d36e AS ripvex
+
+FROM alpine:latest AS ca-certs
+RUN apk add --no-cache ca-certificates
+
 # Base downloader image used to perform any secure download.
-FROM debian:stable-slim AS curl
+FROM ${DEBIAN_DISTRO}:${DEBIAN_VERSION} AS nvm-download
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  curl ca-certificates \
+  ca-certificates curl git \
   && rm -rf /var/lib/apt/lists/*
 
-FROM curl AS nvm-download
+COPY --from=ripvex /ripvex /usr/local/bin/ripvex
+COPY --from=ca-certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
 ARG NVM_VERSION
 ENV NVM_DIR=/opt/nvm
 
 RUN mkdir -p $NVM_DIR && \
   SCRIPT_F="/tmp/nvm-install.sh" && \
-  NVM_URL="https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/install.sh" && \
-  curl -fL -o $SCRIPT_F $NVM_URL && \
+  ripvex --url="https://raw.githubusercontent.com/nvm-sh/nvm/v$NVM_VERSION/install.sh" --output="$SCRIPT_F" && \
   chmod +x $SCRIPT_F && \
   bash $SCRIPT_F && \
   rm -f $SCRIPT_F
@@ -30,19 +36,36 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl python3 make lsb-release gnupg && \
+  ca-certificates make lsb-release gnupg curl git && \
   rm -rf /var/lib/apt/lists/*
 
 ARG DEBIAN_VERSION
+ARG DEBIAN_DISTRO
 ARG NODE_VERSION
 ARG YARN_VERSION
 ENV NVM_DIR=/opt/nvm
+ENV PYENV_ROOT=/opt/pyenv
 
 COPY --from=nvm-download /opt/nvm /opt/nvm
-COPY --from=ghcr.io/lucrnz/software-distillery:testbuild_donotuseinproduction_simple-downloader-ca67db2 /simple-downloader/ /usr/local/bin/simple-downloader
+COPY --from=ripvex /ripvex /usr/local/bin/ripvex
+COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Install python-3.14-pyenv from software-distillery release
+RUN ARCH=$(uname -m) && \
+  if [ "$ARCH" = "x86_64" ]; then \
+    ARCH="amd64"; \
+  fi && \
+  PYENV_VERSION="2.6.15" && \
+  RELEASE_TAG="released-20251209-0200" && \
+  PYENV_URL="https://github.com/lucrnz/software-distillery/releases/download/${RELEASE_TAG}/testbuild_donotuseinproduction_python-3.14-pyenv-${PYENV_VERSION}-${DEBIAN_DISTRO}-${DEBIAN_VERSION}-${RELEASE_TAG}-${ARCH}.tar.gz" && \
+  mkdir -p "$PYENV_ROOT" && \
+  cd "$PYENV_ROOT" && \
+  ripvex --url="$PYENV_URL" --extract-archive --extract-strip-components=2 && \
+  . env.sh && \
+  python --version
 
 RUN LLVM_GPG_KEY_URL="https://apt.llvm.org/llvm-snapshot.gpg.key" && \
-  simple-downloader --output=/etc/apt/trusted.gpg.d/apt.llvm.org.asc --url="$LLVM_GPG_KEY_URL" && \
+  ripvex --url="$LLVM_GPG_KEY_URL" --output=/etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
   echo "deb https://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-20 main" | tee /etc/apt/sources.list.d/llvm.list && \
   apt-get update && \
   apt-get install -y --no-install-recommends clang-20 && \
@@ -50,6 +73,7 @@ RUN LLVM_GPG_KEY_URL="https://apt.llvm.org/llvm-snapshot.gpg.key" && \
   clang-20 --version && \
   export CC=$(which clang-20) && \
   export CXX=$(which clang++-20) && \
+  . $PYENV_ROOT/env.sh && \
   . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
   nvm install $NODE_VERSION && \
@@ -66,7 +90,7 @@ ENV NVM_DIR=/opt/nvm
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates \
+  ca-certificates curl git \
   && rm -rf /var/lib/apt/lists/*
 
 # NVM requires bash to work properly
