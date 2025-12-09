@@ -30,7 +30,8 @@ FROM alpine:${ALPINE_VERSION} AS builder
 
 RUN apk add --no-cache ca-certificates openssl ncurses coreutils \
   make gcc g++ libgcc linux-headers grep util-linux binutils findutils \
-  libstdc++ curl bash wget git
+  libstdc++ curl bash wget git libbz2 zlib xz-libs readline sqlite-libs \
+  gdbm expat libffi libnsl
 
 SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
 
