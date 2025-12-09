@@ -50,14 +50,14 @@ COPY --from=nvm-download /opt/nvm /opt/nvm
 COPY --from=ripvex /ripvex /usr/local/bin/ripvex
 COPY --from=ripvex /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Install python-3.14-pyenv from software-distillery release
+# Install python-3.13.11-pyenv from software-distillery release
 RUN ARCH=$(uname -m) && \
   if [ "$ARCH" = "x86_64" ]; then \
     ARCH="amd64"; \
   fi && \
-  PYENV_VERSION="2.6.15" && \
-  RELEASE_TAG="released-20251209-0200" && \
-  PYENV_URL="https://github.com/lucrnz/software-distillery/releases/download/${RELEASE_TAG}/testbuild_donotuseinproduction_python-3.14-pyenv-${PYENV_VERSION}-${DEBIAN_DISTRO}-${DEBIAN_VERSION}-${RELEASE_TAG}-${ARCH}.tar.gz" && \
+  PYENV_VERSION="2.6.16" && \
+  RELEASE_TAG="released-20251209-1917" && \
+  PYENV_URL="https://github.com/lucrnz/software-distillery/releases/download/${RELEASE_TAG}/testbuild_donotuseinproduction_python-3.13.11-pyenv-${PYENV_VERSION}-${DEBIAN_DISTRO}-${DEBIAN_VERSION}-${RELEASE_TAG}-${ARCH}.tar.gz" && \
   mkdir -p "$PYENV_ROOT" && \
   cd "$PYENV_ROOT" && \
   ripvex --url="$PYENV_URL" --extract-archive --extract-strip-components=2 && \
