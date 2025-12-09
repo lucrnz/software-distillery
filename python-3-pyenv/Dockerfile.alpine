@@ -1,8 +1,6 @@
 ARG ALPINE_VERSION=3.22
 ARG PYTHON_VERSION=3.14.2
-
-ARG PYENV_VERSION=2.6.15
-ARG PYENV_HASH=sha256:82770b00ce24b059c3a6159779a9690ec16bc4663a6eef0c143c8985f9a3ce09
+ARG PYENV_VERSION=2.6.16
 
 FROM alpine:latest AS ca-certs
 RUN apk add --no-cache ca-certificates
@@ -30,7 +28,6 @@ RUN PYENV_URL="https://github.com/pyenv/pyenv/archive/refs/tags/v${PYENV_VERSION
   ripvex \
     --chdir="$PYENV_ROOT" --chdir-create=true \
     --url="$PYENV_URL" \
-    --hash="${PYENV_HASH}" \
     --extract-archive --extract-strip-components=1 && \
   cd $PYENV_ROOT && \
   src/configure && \

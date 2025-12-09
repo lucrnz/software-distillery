@@ -1,9 +1,7 @@
 ARG DEBIAN_VERSION=trixie
 ARG DEBIAN_DISTRO=debian
 ARG PYTHON_VERSION=3.14.2
-
-ARG PYENV_VERSION=2.6.15
-ARG PYENV_HASH=82770b00ce24b059c3a6159779a9690ec16bc4663a6eef0c143c8985f9a3ce09
+ARG PYENV_VERSION=2.6.16
 
 FROM ghcr.io/lucrnz/ripvex:dev-20251208-c34d36e AS ripvex
 
@@ -41,7 +39,6 @@ RUN PYENV_URL="https://github.com/pyenv/pyenv/archive/refs/tags/v${PYENV_VERSION
   ripvex \
     --chdir="$PYENV_ROOT" --chdir-create=true \
     --url="$PYENV_URL" \
-    --hash="sha256:${PYENV_HASH}" \
     --extract-archive --extract-strip-components=1 && \
   cd $PYENV_ROOT && \
   src/configure && \

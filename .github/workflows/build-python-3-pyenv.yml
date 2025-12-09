@@ -1,8 +1,5 @@
 name: Build and Release Python 3.x Pyenv
 
-env:
-  PYENV_VERSION: 2.6.15
-
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +24,18 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       test_prefix: ${{ steps.version.outputs.test_prefix }}
+      pyenv_version: ${{ steps.pyenv-version.outputs.pyenv_version }}
     steps:
+      - name: Fetch latest pyenv version
+        id: pyenv-version
+        run: |
+          PYENV_VERSION=$(curl -s https://api.github.com/repos/pyenv/pyenv/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          if [ -z "$PYENV_VERSION" ] || [ "$PYENV_VERSION" = "null" ]; then
+            echo "Failed to resolve pyenv version" >&2
+            exit 1
+          fi
+          echo "pyenv_version=$PYENV_VERSION" >> $GITHUB_OUTPUT
+
       - name: Generate version tag
         id: version
         run: |
@@ -82,13 +90,14 @@ jobs:
           os_version="${{ matrix.os_version }}"
           os="${os_version%%-*}"
           version="${os_version#*-}"
-          ARTIFACT_NAME="python-${{ matrix.python_version }}-pyenv-${{ env.PYENV_VERSION }}"
+          ARTIFACT_NAME="python-${{ matrix.python_version }}-pyenv-${{ needs.prepare.outputs.pyenv_version }}"
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
           if [ "$os" = "alpine" ]; then
             echo "dockerfile=alpine" >> $GITHUB_OUTPUT
             echo "build_args<<EOF" >> $GITHUB_OUTPUT
             echo "ALPINE_VERSION=$version" >> $GITHUB_OUTPUT
             echo "PYTHON_VERSION=${{ matrix.python_version }}" >> $GITHUB_OUTPUT
+            echo "PYENV_VERSION=${{ needs.prepare.outputs.pyenv_version }}" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           elif [ "$os" = "ubuntu" ]; then
             echo "dockerfile=debian" >> $GITHUB_OUTPUT
@@ -96,12 +105,14 @@ jobs:
             echo "DEBIAN_VERSION=$version" >> $GITHUB_OUTPUT
             echo "DEBIAN_DISTRO=ubuntu" >> $GITHUB_OUTPUT
             echo "PYTHON_VERSION=${{ matrix.python_version }}" >> $GITHUB_OUTPUT
+            echo "PYENV_VERSION=${{ needs.prepare.outputs.pyenv_version }}" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "dockerfile=debian" >> $GITHUB_OUTPUT
             echo "build_args<<EOF" >> $GITHUB_OUTPUT
             echo "DEBIAN_VERSION=$version" >> $GITHUB_OUTPUT
             echo "PYTHON_VERSION=${{ matrix.python_version }}" >> $GITHUB_OUTPUT
+            echo "PYENV_VERSION=${{ needs.prepare.outputs.pyenv_version }}" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
           echo "os=$os" >> $GITHUB_OUTPUT
@@ -161,7 +172,7 @@ jobs:
       - name: Set artifact name
         id: artifact-name
         run: |
-          ARTIFACT_NAME="python-${{ matrix.python_version }}-pyenv-${{ env.PYENV_VERSION }}"
+          ARTIFACT_NAME="python-${{ matrix.python_version }}-pyenv-${{ needs.prepare.outputs.pyenv_version }}"
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
@@ -204,7 +215,7 @@ jobs:
           version="${os_version#*-}"
           echo "os=$os" >> $GITHUB_OUTPUT
           echo "version=$version" >> $GITHUB_OUTPUT
-          echo "artifact_name=python-${{ matrix.python_version }}-pyenv-${{ env.PYENV_VERSION }}" >> $GITHUB_OUTPUT
+          echo "artifact_name=python-${{ matrix.python_version }}-pyenv-${{ needs.prepare.outputs.pyenv_version }}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -254,7 +265,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          pattern: python-*-pyenv-${{ env.PYENV_VERSION }}-*
+          pattern: python-*-pyenv-${{ needs.prepare.outputs.pyenv_version }}-*
           merge-multiple: true
 
       - name: List artifacts
@@ -273,7 +284,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
-          name: Python 3.x Pyenv 2.6.15 - ${{ needs.prepare.outputs.version }}
+          name: Python 3.x Pyenv ${{ needs.prepare.outputs.pyenv_version }} - ${{ needs.prepare.outputs.version }}
           files: artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
