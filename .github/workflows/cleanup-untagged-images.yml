@@ -21,9 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build cleanup container
+        run: |
+          set -euxo pipefail
+          docker build -t ghcr-cleanup:latest tools/cleanup-untagged-images
+
       - name: Delete all untagged GHCR image versions for this repo
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          python tools/cleanup-untagged-images/cleanup.py --owner "${GITHUB_REPOSITORY_OWNER}" --repo "${GITHUB_REPOSITORY#*/}" --token "${GH_TOKEN}"
+          set -euxo pipefail
+          docker run --rm \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}" \
+            -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            ghcr-cleanup:latest

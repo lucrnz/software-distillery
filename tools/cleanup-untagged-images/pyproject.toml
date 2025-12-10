@@ -1,0 +1,13 @@
+[project]
+name = "ghcr-cleanup"
+version = "1.0.0"
+description = "Delete all untagged GHCR container versions for a repository"
+requires-python = ">=3.8"
+dependencies = []
+
+[project.scripts]
+ghcr-cleanup = "cleanup:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
