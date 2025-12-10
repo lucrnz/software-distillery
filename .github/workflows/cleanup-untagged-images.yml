@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   packages: write
+  actions: read
 
 concurrency:
   group: cleanup-untagged-images
@@ -25,8 +26,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          echo "${GH_TOKEN}" | gh auth login --with-token
-
           while true; do
             running=$(gh run list \
               --repo "${GITHUB_REPOSITORY}" \
