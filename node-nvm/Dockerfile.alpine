@@ -30,6 +30,7 @@ FROM alpine:${ALPINE_VERSION} AS builder
 
 RUN apk add --no-cache ca-certificates openssl ncurses coreutils \
   make gcc g++ libgcc linux-headers grep util-linux binutils findutils \
+  musl-dev \
   libstdc++ curl bash wget git libbz2 zlib xz-libs readline sqlite-libs \
   gdbm expat libffi libnsl
 
@@ -63,11 +64,16 @@ RUN ARCH=$(uname -m) && \
   cd /root
 
 RUN apk update && \
+  CLANG_BIN="clang-19" && \
+  CXX_BIN="clang++-19" && \
   if apk info clang19 > /dev/null 2>&1; then \
     apk add --no-cache clang19; \
     echo "Using Clang-19 from Alpine repos"; \
-    export CC="clang-19"; \
-    export CXX="clang++-19"; \
+  elif apk info clang > /dev/null 2>&1; then \
+    apk add --no-cache clang; \
+    CLANG_BIN="clang"; \
+    CXX_BIN="clang++"; \
+    echo "Using system clang from Alpine repos"; \
   else \
     ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
@@ -83,9 +89,36 @@ RUN apk update && \
     ls -la /opt/clang19 && \
     echo "Using Clang-19 from Software Distillery GH Repo"; \
     . env.sh; \
+    # The tarball provides versioned clang binaries, but lacks a clang++-19
+    # wrapper; add a symlink so CXX=clang++-19 works during Node's configure.py
+    if [ ! -x /opt/clang19/bin/clang++-19 ] && [ -x /opt/clang19/bin/clang ]; then \
+      ln -sf /opt/clang19/bin/clang /opt/clang19/bin/clang++-19; \
+    fi; \
+    CLANG_BIN="/opt/clang19/bin/clang-19"; \
+    CXX_BIN="/opt/clang19/bin/clang++-19"; \
     cd /root; \
   fi && \
-  clang-19 --version && \
+  # Ensure clang can find standard C/C++ headers and libstdc++ headers
+  GCC_VERSION=$(g++ -dumpversion) && \
+  GCC_TARGET=$(g++ -dumpmachine) && \
+  GCC_CPP_BASE="/usr/include/c++/${GCC_VERSION}" && \
+  GCC_CPP_TARGET="${GCC_CPP_BASE}/${GCC_TARGET}" && \
+  GCC_LIB="/usr/lib/gcc/${GCC_TARGET}/${GCC_VERSION}" && \
+  CRTBEGIN_PATH=$(g++ -print-file-name=crtbeginS.o) && \
+  CRTBEGIN_DIR=$(dirname "$CRTBEGIN_PATH") && \
+  CPP_PATHS="${GCC_CPP_BASE}:${GCC_CPP_TARGET}" && \
+  export CPLUS_INCLUDE_PATH="${CPP_PATHS}:${CPLUS_INCLUDE_PATH:-}" && \
+  export C_INCLUDE_PATH="/usr/include:${C_INCLUDE_PATH:-}" && \
+  # Make sure clang can locate GCC's crt objects (crtbeginS.o, etc.) and libs
+  export LIBRARY_PATH="${CRTBEGIN_DIR}:${GCC_LIB}:${LIBRARY_PATH:-}" && \
+  export LDFLAGS="-B${GCC_LIB} --gcc-toolchain=/usr -L${CRTBEGIN_DIR} -L${GCC_LIB} ${LDFLAGS:-}" && \
+  # Force clang to target the detected GCC triple so ARM NEON types are available
+  CLANG_TARGET="${GCC_TARGET}" && \
+  export CC=${CC:-$CLANG_BIN} && \
+  export CXX=${CXX:-$CXX_BIN} && \
+  export CFLAGS="-B${GCC_LIB} --target=${CLANG_TARGET} --gcc-toolchain=/usr ${CFLAGS:-}" && \
+  export CXXFLAGS="-B${GCC_LIB} --target=${CLANG_TARGET} --gcc-toolchain=/usr ${CXXFLAGS:-}" && \
+  $CC --version && \
   . $PYENV_ROOT/env.sh && \
   . $NVM_DIR/nvm.sh && \
   echo "yarn@$YARN_VERSION" >> $NVM_DIR/default-packages && \
