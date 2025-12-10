@@ -2,7 +2,7 @@ name: Nightly GHCR Untagged Cleanup
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 permissions:
@@ -19,6 +19,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Wait for other workflows to finish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "${GH_TOKEN}" | gh auth login --with-token
+
+          while true; do
+            running=$(gh run list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --status in_progress \
+              --json databaseId \
+              --jq "[.[] | select(.databaseId != ${GITHUB_RUN_ID})] | length")
+
+            if [ "${running}" -eq 0 ]; then
+              echo "No other workflows running; proceeding with cleanup."
+              break
+            fi
+
+            echo "Found ${running} other workflow(s) running. Sleeping 10 minutes..."
+            sleep 600
+          done
 
       - name: Delete all untagged GHCR image versions for this repo
         env:
