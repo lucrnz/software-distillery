@@ -2,7 +2,7 @@ FROM ghcr.io/astral-sh/uv:0.9-python3.14-alpine AS builder
 WORKDIR /build
 
 COPY pyproject.toml ./
-COPY cleanup.py ./
+COPY ghcr_cleanup ./ghcr_cleanup
 
 RUN set -euxo pipefail && \
   uv venv /opt/venv && \
@@ -11,9 +11,8 @@ RUN set -euxo pipefail && \
 FROM python:3.14-alpine
 
 COPY --from=builder /opt/venv /opt/venv
-COPY --from=builder /build/cleanup.py /app/cleanup.py
 ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /app
 
-ENTRYPOINT ["python", "/app/cleanup.py"]
+ENTRYPOINT ["ghcr-cleanup"]
