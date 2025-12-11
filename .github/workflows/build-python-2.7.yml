@@ -33,7 +33,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       test_prefix: ${{ steps.version.outputs.test_prefix }}
@@ -56,42 +56,42 @@ jobs:
 
   build:
     needs: prepare
-    runs-on: tenki-standard-large-plus-16c-32g
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           # Alpine variants
-          - { os: alpine, version: "3.22", platform: "linux/amd64" }
-          - { os: alpine, version: "3.22", platform: "linux/arm64" }
-          - { os: alpine, version: "3.21", platform: "linux/amd64" }
-          - { os: alpine, version: "3.21", platform: "linux/arm64" }
-          - { os: alpine, version: "3.20", platform: "linux/amd64" }
-          - { os: alpine, version: "3.20", platform: "linux/arm64" }
-          - { os: alpine, version: "3.19", platform: "linux/amd64" }
-          - { os: alpine, version: "3.19", platform: "linux/arm64" }
-          - { os: alpine, version: "3.18", platform: "linux/amd64" }
-          - { os: alpine, version: "3.18", platform: "linux/arm64" }
-          - { os: alpine, version: "3.17", platform: "linux/amd64" }
-          - { os: alpine, version: "3.17", platform: "linux/arm64" }
-          - { os: alpine, version: "3.16", platform: "linux/amd64" }
-          - { os: alpine, version: "3.16", platform: "linux/arm64" }
-          - { os: alpine, version: "3.15", platform: "linux/amd64" }
-          - { os: alpine, version: "3.15", platform: "linux/arm64" }
+          - { os: alpine, version: "3.22", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.22", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.21", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.21", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.20", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.20", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.19", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.19", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.18", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.18", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.17", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.17", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.16", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.16", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: alpine, version: "3.15", platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: alpine, version: "3.15", platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           # Debian variants
-          - { os: debian, version: bookworm, platform: "linux/amd64" }
-          - { os: debian, version: bookworm, platform: "linux/arm64" }
-          - { os: debian, version: trixie, platform: "linux/amd64" }
-          - { os: debian, version: trixie, platform: "linux/arm64" }
-          - { os: debian, version: bullseye, platform: "linux/amd64" }
-          - { os: debian, version: bullseye, platform: "linux/arm64" }
+          - { os: debian, version: bookworm, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: debian, version: bookworm, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: debian, version: trixie, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: debian, version: trixie, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: debian, version: bullseye, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: debian, version: bullseye, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
           # Ubuntu variants
-          - { os: ubuntu, version: noble, platform: "linux/amd64" }
-          - { os: ubuntu, version: noble, platform: "linux/arm64" }
-          - { os: ubuntu, version: jammy, platform: "linux/amd64" }
-          - { os: ubuntu, version: jammy, platform: "linux/arm64" }
-          - { os: ubuntu, version: focal, platform: "linux/amd64" }
-          - { os: ubuntu, version: focal, platform: "linux/arm64" }
+          - { os: ubuntu, version: noble, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: ubuntu, version: noble, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: ubuntu, version: jammy, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: ubuntu, version: jammy, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
+          - { os: ubuntu, version: focal, platform: "linux/amd64", runner: "tenki-standard-large-plus-16c-32g" }
+          - { os: ubuntu, version: focal, platform: "linux/arm64", runner: "ubicloud-standard-16-arm" }
 
     steps:
       - name: Checkout
@@ -160,7 +160,7 @@ jobs:
 
   merge:
     needs: [prepare, build]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -354,7 +354,7 @@ jobs:
 
   extract:
     needs: [prepare, merge]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -416,7 +416,7 @@ jobs:
 
   release:
     needs: [prepare, extract]
-    runs-on: tenki-standard-autoscale
+    runs-on: ubuntu-latest
     if: ${{ inputs.create_release == true }}
     steps:
       - name: Download all artifacts
