@@ -35,4 +35,5 @@ jobs:
             -e GH_TOKEN="${GH_TOKEN}" \
             -e GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
-            ghcr-cleanup:latest
+            -e GITHUB_RUN_ID="${GITHUB_RUN_ID}" \
+            ghcr-cleanup:latest -w
