@@ -32,8 +32,8 @@ RUN apk add --no-cache \
   ncurses-dev \
   linux-headers
 
+COPY --from=clang-download /download/clang /opt/llvm-build-workspace
 WORKDIR /opt/llvm-build-workspace
-COPY --from=clang-download /download/clang /opt/llvm-build-workspace/clang
 
 RUN ARCH=$(uname -m) && \
   if [ "$ARCH" = "x86_64" ]; then \
