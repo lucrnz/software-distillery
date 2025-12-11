@@ -16,6 +16,16 @@ on:
         required: false
         type: boolean
         default: false
+      force_upload:
+        description: 'Force upload even if image already exists'
+        required: false
+        type: boolean
+        default: false
+      override_timestamp:
+        description: 'Override the timestamp for the release tag'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -31,7 +41,11 @@ jobs:
       - name: Generate version tag
         id: version
         run: |
-          VERSION="released-$(date -u +'%Y%m%d-%H%M')"
+          if [ -n "${{ inputs.override_timestamp }}" ]; then
+            VERSION="released-${{ inputs.override_timestamp }}"
+          else
+            VERSION="released-$(date -u +'%Y%m%d-%H%M')"
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           if [ "${{ inputs.test_build }}" = "true" ]; then
             echo "test_prefix=testbuild_donotuseinproduction_" >> $GITHUB_OUTPUT
@@ -181,6 +195,147 @@ jobs:
           - { os: ubuntu, version: jammy }
           - { os: ubuntu, version: focal }
     steps:
+      - name: Install jq if needed
+        if: ${{ inputs.force_upload == true }}
+        run: |
+          if ! command -v jq &> /dev/null; then
+            echo "Installing jq..."
+            sudo apt-get update && sudo apt-get install -y jq
+          else
+            echo "jq is already installed"
+          fi
+
+      - name: Delete existing image if force upload is enabled
+        if: ${{ inputs.force_upload == true }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ needs.prepare.outputs.test_prefix }}${{ env.ARTIFACT_NAME }}-${{ matrix.os }}-${{ matrix.version }}-${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          PACKAGE_NAME="${{ github.event.repository.name }}"
+          REPO_OWNER="${{ github.repository_owner }}"
+          API_BASE="https://api.github.com"
+
+          echo "Attempting to delete existing image: $IMAGE_NAME"
+
+          # Check if jq is available
+          if ! command -v jq &> /dev/null; then
+            echo "Error: jq is not available. This should have been installed in the previous step."
+            exit 1
+          fi
+
+          # Function to handle API errors
+          check_api_response() {
+            local response="$1"
+            local operation="$2"
+
+            if [ -z "$response" ]; then
+              echo "Error: Empty response from $operation API call"
+              return 1
+            fi
+
+            # Check for rate limiting
+            if echo "$response" | jq -e '.message | test("API rate limit exceeded")' >/dev/null 2>&1; then
+              echo "Error: GitHub API rate limit exceeded. Please try again later."
+              exit 1
+            fi
+
+            # Check for authentication errors
+            if echo "$response" | jq -e '.message | test("Bad credentials")' >/dev/null 2>&1; then
+              echo "Error: Bad credentials or insufficient permissions for $operation"
+              exit 1
+            fi
+
+            return 0
+          }
+
+          # Check if package exists
+          echo "Checking if package exists..."
+          PACKAGE_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_BASE/orgs/$REPO_OWNER/packages/container/$PACKAGE_NAME")
+
+          PACKAGE_HTTP_CODE=$(echo "$PACKAGE_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          PACKAGE_BODY=$(echo "$PACKAGE_RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
+
+          if [ "$PACKAGE_HTTP_CODE" = "404" ]; then
+            echo "Package $PACKAGE_NAME does not exist in $REPO_OWNER. Nothing to delete."
+            exit 0
+          elif [ "$PACKAGE_HTTP_CODE" != "200" ]; then
+            echo "Error: Failed to check package existence (HTTP $PACKAGE_HTTP_CODE)"
+            echo "Response: $PACKAGE_BODY"
+            exit 1
+          fi
+
+          check_api_response "$PACKAGE_BODY" "package check"
+
+          PACKAGE_ID=$(echo "$PACKAGE_BODY" | jq -r '.id')
+          if [ "$PACKAGE_ID" = "null" ] || [ -z "$PACKAGE_ID" ]; then
+            echo "Error: Could not extract package ID from API response"
+            exit 1
+          fi
+
+          echo "Found package: $PACKAGE_NAME (ID: $PACKAGE_ID)"
+
+          # Get all versions for this package
+          echo "Fetching package versions..."
+          VERSIONS_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_BASE/orgs/$REPO_OWNER/packages/container/$PACKAGE_NAME/versions")
+
+          VERSIONS_HTTP_CODE=$(echo "$VERSIONS_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          VERSIONS_BODY=$(echo "$VERSIONS_RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
+
+          if [ "$VERSIONS_HTTP_CODE" != "200" ]; then
+            echo "Error: Failed to fetch package versions (HTTP $VERSIONS_HTTP_CODE)"
+            echo "Response: $VERSIONS_BODY"
+            exit 1
+          fi
+
+          check_api_response "$VERSIONS_BODY" "versions fetch"
+
+          # Find version ID that matches our specific tag
+          VERSION_ID=$(echo "$VERSIONS_BODY" | jq -r --arg tag "$IMAGE_NAME" \
+            '.[] | select(.metadata.container.tags[]? | contains($tag)) | .id' | head -1)
+
+          if [ -z "$VERSION_ID" ] || [ "$VERSION_ID" = "null" ]; then
+            echo "No existing version found for tag: $IMAGE_NAME"
+            exit 0
+          fi
+
+          echo "Found version ID: $VERSION_ID for tag: $IMAGE_NAME"
+
+          # Attempt to delete the version
+          echo "Deleting version $VERSION_ID..."
+          DELETE_RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" \
+            -X DELETE \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$API_BASE/orgs/$REPO_OWNER/packages/container/$PACKAGE_NAME/versions/$VERSION_ID")
+
+          DELETE_HTTP_CODE=$(echo "$DELETE_RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+          DELETE_BODY=$(echo "$DELETE_RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
+
+          if [ "$DELETE_HTTP_CODE" = "204" ]; then
+            echo "Successfully deleted existing version: $VERSION_ID"
+          elif [ "$DELETE_HTTP_CODE" = "404" ]; then
+            echo "Version $VERSION_ID not found (may have been already deleted)"
+            exit 0
+          elif [ "$DELETE_HTTP_CODE" = "403" ]; then
+            echo "Error: Insufficient permissions to delete package version"
+            echo "Make sure the token has 'delete:packages' scope"
+            exit 1
+          else
+            echo "Error: Failed to delete version (HTTP $DELETE_HTTP_CODE)"
+            if [ -n "$DELETE_BODY" ]; then
+              echo "Response: $DELETE_BODY"
+            fi
+            exit 1
+          fi
+      
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
